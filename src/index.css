@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Horizon-inspired font - using Orbitron as closest Google Font alternative */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Clean white theme */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+
+    /* Cards */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+
+    /* Primary - Blue accent */
+    --primary: 211 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 0 0% 15%;
+
+    /* Muted surfaces */
+    --muted: 210 40% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    /* Accent */
+    --accent: 211 100% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders and inputs */
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 211 100% 50%;
+
+    --radius: 0.5rem;
+
+    /* Custom tokens */
+    --success: 142 71% 45%;
+    
+    /* Shadows */
+    --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 10px 40px hsl(0 0% 0% / 0.1);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Typography with Orbitron for headlines */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  /* Highlight box for text */
+  .text-highlight {
+    @apply bg-primary text-primary-foreground px-3 py-1 inline-block;
+  }
+
+  /* Card with subtle shadow */
+  .card-elevated {
+    @apply bg-card border border-border rounded-xl;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Disclaimer box */
+  .disclaimer-box {
+    @apply bg-primary/5 border border-primary/20 rounded-xl p-6;
+  }
+
+  /* Section container */
+  .section-container {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Moving banner animation */
+  @keyframes scroll-left {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-scroll-left {
+    animation: scroll-left 30s linear infinite;
+  }
+
+  /* Fade in animations */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.6s ease-out forwards;
+  }
+}
+
+@layer utilities {
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+}

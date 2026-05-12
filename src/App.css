@@ -1,0 +1,35 @@
+/* FORCE CLEAN LIGHT MODE */
+:root {
+  --background: 0 0% 100% !important;
+  --foreground: 222.2 84% 4.9% !important;
+}
+
+body {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Fixes the gray boxes in your screenshot */
+.bg-\[#050505\], .bg-zinc-900, .bg-zinc-950 {
+  background-color: #f8fafc !important; /* Very light blue-gray */
+  color: #0f172a !important;
+}
+
+/* Makes sure buttons stay visible */
+button.bg-white {
+  background-color: #0f172a !important; /* Dark button on white bg */
+  color: #ffffff !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}

@@ -1,0 +1,299 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 3193
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 22 Tf
+25.2999999999999972 TL
+0 g
+56.6929133858267775 756.8506299212598378 Td
+(RELUNO INTELLIGENCE REPORT) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.588 g
+56.6929133858267775 734.1734645669291695 Td
+(Generated: 5/9/2026, 11:01:14 AM) Tj
+ET
+0.9 G
+56.6929133858267775 714.3309448818897636 m
+538.5826771653544256 714.3309448818897636 l
+S
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0.196 g
+56.6929133858267775 671.8112598425196893 Td
+(### Legal Risk Assessment: Partnership & Tech Transfer Memo) Tj
+T* () Tj
+T* (The provided document contains significant legal deficiencies and creates substantial) Tj
+T* (exposure for the Company.) Tj
+T* () Tj
+T* (### 1. Equity & Vesting Risks) Tj
+T* (The lack of a **Vesting Schedule** or **Cliff** is highly irregular for a startup. Granting) Tj
+T* (40–50% equity immediately creates an **Equity Overhang**, rendering the company) Tj
+T* (uninvestable for future **Venture Capital** or **Angel Investors**. Without a **Buy-Sell) Tj
+T* (Agreement** or **Repurchase Option**, the Developer may exit immediately while retaining) Tj
+T* (half the company, effectively paralyzing the entity.) Tj
+T* () Tj
+T* (### 2. Intellectual Property \(IP\) Fragmentation) Tj
+T* (The arrangement to allow the Developer to retain rights to "special sauce" AI logic is a) Tj
+T* (**Critical Defect**. For an AI company, the **Core IP** is the primary asset. By failing to) Tj
+T* (execute a **Proprietary Information and Inventions Assignment Agreement \(PIIAA\)**, the) Tj
+T* (Company does not own its own product. Relying on a "friends" usage basis is legally) Tj
+T* (unenforceable and creates a **Cloud on Title** that prevents any future acquisition or due) Tj
+T* (diligence.) Tj
+T* () Tj
+T* (### 3. Liability & Indemnification) Tj
+T* (The clause indemnifying the Developer for all legal malpractice or damages resulting from) Tj
+T* ("hallucinations" is commercially unreasonable. In the context of **Legal AI**, the company) Tj
+T* (is acting as a **Service Provider**. Shifting 100% of the liability to the Company while) Tj
+T* (leaving the Developer \(who controls the code\) immune from **Errors and Omissions) Tj
+T* (\(E&O\)** liability creates an existential risk. If the AI provides unlicensed legal advice, the) Tj
+T* (Company faces **Unauthorized Practice of Law \(UPL\)** charges and massive tort liability.) Tj
+T* () Tj
+T* (### 4. Compensation & Financial Controls) Tj
+T* (The "whenever there is extra cash" payment structure lacks defined **Key Performance) Tj
+T* (Indicators \(KPIs\)** or **Milestones**. This ambiguity invites **Taxation** disputes with the) Tj
+T* (IRS regarding **Employee vs. Independent Contractor** classification. Furthermore, the) Tj
+T* (absence of a defined salary or payment structure lacks the certainty required for formal) Tj
+T* (corporate bookkeeping.) Tj
+T* () Tj
+T* (### 5. Termination & Exit) Tj
+T* (The ability for the Developer to "take the code with them" upon termination effectively) Tj
+T* (makes the Company a shell entity. This violates the fundamental concept of **Work Made) Tj
+T* (for Hire** and ensures that the Company has no **Going Concern Value** if the) Tj
+T* (partnership dissolves.) Tj
+T* () Tj
+T* () Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R ]
+/Count 1
+>>
+endobj
+5 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+6 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 5 0 R
+/F2 6 0 R
+/F3 7 0 R
+/F4 8 0 R
+/F5 9 0 R
+/F6 10 0 R
+/F7 11 0 R
+/F8 12 0 R
+/F9 13 0 R
+/F10 14 0 R
+/F11 15 0 R
+/F12 16 0 R
+/F13 17 0 R
+/F14 18 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+19 0 obj
+<<
+/Producer (jsPDF 4.2.1)
+/CreationDate (D:20260509110114-05'00')
+>>
+endobj
+20 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 21
+0000000000 65535 f 
+0000003397 00000 n 
+0000005214 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000003454 00000 n 
+0000003579 00000 n 
+0000003709 00000 n 
+0000003842 00000 n 
+0000003979 00000 n 
+0000004102 00000 n 
+0000004231 00000 n 
+0000004363 00000 n 
+0000004499 00000 n 
+0000004627 00000 n 
+0000004754 00000 n 
+0000004883 00000 n 
+0000005016 00000 n 
+0000005118 00000 n 
+0000005462 00000 n 
+0000005548 00000 n 
+trailer
+<<
+/Size 21
+/Root 20 0 R
+/Info 19 0 R
+/ID [ <C59891DE723FB6501EDE6187B400644D> <C59891DE723FB6501EDE6187B400644D> ]
+>>
+startxref
+5652
+%%EOF
