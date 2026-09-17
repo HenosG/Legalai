@@ -1,8 +1,8 @@
 // src/App.tsx
-// Full architectural rewrite:
-// - PublicLayout: Navbar + Footer wrapper for marketing pages
-// - AppLayout: DashboardSidebar wrapper for authenticated app pages
-// - All routes wired, zero 404s
+// RelunoOS Core Application Router
+// - PublicLayout: Wrapper for public landing/auth pages
+// - AppLayout: DashboardSidebar wrapper for authenticated workspace views
+// - Clean routes with zero unnecessary legacy imports
 
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,44 +14,25 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 
+// ─── Public Pages ─────────────────────────────────────────────────────────────
+import Index      from "./pages/Index";
+import Login      from "./pages/Login";
+import Signup     from "./pages/Signup";
+import Pricing    from "./pages/Pricing";
+import Contact    from "./pages/Contact";
+import Support    from "./pages/company/Support";
 
-// ─── Public pages ─────────────────────────────────────────────────────────────
-import Index    from "./pages/Index";
-import Login    from "./pages/Login";
-import Signup   from "./pages/Signup";
-import Pricing  from "./pages/Pricing";
-import About    from "./pages/company/AboutUs"; 
-import Contact from "./pages/Contact"; // Remove the /company/ part
-import Careers from "./pages/company/Careers";    // Added
-import Support from "./pages/company/Support";    // Added
-import Affiliates from "./pages/company/Affiliates"; // Added
-import Blog from "./pages/resources/Blog";
+// ─── RelunoOS Core App Pages ────────────────────────────────________________──
+import Dashboard      from "./pages/Dashboard";
+import CRM            from "./pages/CRM";
+import AIIntake       from "./pages/AIIntake";
+import Proposals      from "./pages/Proposals";
+import Projects       from "./pages/Projects";
+import Invoices       from "./pages/Invoices";
+import Account        from "./pages/Account";
 
-
-// ─── Practice area marketing pages ──────────────────────────────────────────
-import PersonalInjury from "./pages/practice-types/PersonalInjury";
-import FamilyLaw      from "./pages/practice-types/FamilyLaw";
-import ContractLaw    from "./pages/practice-types/ContractLaw";
-import LandlordTenant from "./pages/practice-types/LandlordTenant";
-import SmallClaims    from "./pages/practice-types/SmallClaims";
-
-// ─── App pages ────────────────────────────────────────────────────────────────
-import Dashboard          from "./pages/Dashboard";
-import MyCases            from "./pages/MyCases";
-import Account            from "./pages/Account";
-import DashboardAnalytics  from "./pages/DashboardAnalytics";
-import LegalQuestionAI    from "./pages/products/LegalQuestionAI";
-import DocumentGenerator  from "./pages/products/DocumentGenerator";
-
-// ─── New feature pages ────────────────────────────────────────────────────────
-import Tasks         from "./pages/Tasks";
-import PDFAnalysis   from "./pages/PDFAnalysis";
-import Integrations from "./pages/Integrations";
-import Analytics     from "./pages/Analytics";
-import Export        from "./pages/Export";
-import CalendarSync from "./pages/resources/CalendarSync";
-import Templates     from "./pages/Templates";
-import CaseTracking from "./pages/CaseTracking";
+// ─── Temporary Placeholder for remaining stubs ────────────────────────────────
+import TempPlaceholder from "./pages/TempPlaceholder";
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 import NotFound       from "./pages/NotFound";
@@ -65,11 +46,13 @@ const PublicLayout = () => <Outlet />;
 const AppLayout = () => (
   <ProtectedRoute>
     <div className="flex h-screen w-full bg-white overflow-hidden">
-      {/* SIDEBAR STAYS HERE */}
-      <DashboardSidebar /> 
+      {/* SIDEBAR STAYS RIGIDLY FIXED & PERSISTENT */}
+      <div className="w-64 flex-shrink-0 flex-grow-0 h-full border-r border-zinc-100">
+        <DashboardSidebar /> 
+      </div>
       
-      {/* MAIN CONTENT AREA - flex-1 allows it to take all remaining space */}
-      <main className="flex-1 overflow-y-auto relative bg-[#F9FAFB] w-full">
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 min-w-0 h-full overflow-y-auto relative bg-[#F9FAFB]">
         <Outlet />
       </main>
     </div>
@@ -79,7 +62,6 @@ const AppLayout = () => (
 // ══════════════════════════════════════════════════════════════════════════════
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    {/* MOVED: BrowserRouter must wrap everything for useNavigate to work */}
     <BrowserRouter> 
       <AuthProvider>
         <SubscriptionProvider>
@@ -87,76 +69,39 @@ const App = () => (
             <Toaster />
             <Sonner />
             <Routes>
-              {/* ── PUBLIC ROUTES ── */}
+              
+              {/* ── PUBLIC ROUTES (No Sidebar) ── */}
               <Route element={<PublicLayout />}>
-                <Route path="/"               element={<Index />}   />
-                <Route path="/login"          element={<Login />}   />
-                <Route path="/signup"         element={<Signup />}  />
-                <Route path="/pricing"        element={<Pricing />} />
-                <Route path="/aboutus"          element={<About />}   />
-                <Route path="/contact"        element={<Contact />} />
-                <Route path="/careers"        element={<Careers />} />
-                <Route path="/support"        element={<Support />} />
-                <Route path="/affiliates"     element={<Affiliates />} />
-
-                {/* ── PRACTICE AREA ROUTES ── */}
-<Route element={<PublicLayout />}>
-  <Route path="/personalinjury" element={<PersonalInjury />} />
-  <Route path="/familylaw"      element={<FamilyLaw />}      />
-  <Route path="/contracts"      element={<ContractLaw />}    />
-  <Route path="/landlordtenant" element={<LandlordTenant />} />
-  <Route path="/smallclaims"    element={<SmallClaims />}    />
-</Route>
-
-                {/* Resources — public */}
-                <Route path="/blog"      element={<Dashboard title="Legal Blog" />}    />
-                <Route path="/guides"    element={<Dashboard title="Expert Guides" />} />
-                <Route path="/webinars"  element={<Dashboard title="Webinars" />}      />
-                <Route path="/community" element={<Dashboard title="Community" />}     />
+                <Route path="/"          element={<Index />} />
+                <Route path="/login"     element={<Login />} />
+                <Route path="/signup"    element={<Signup />} />
+                <Route path="/pricing"   element={<Pricing />} />
+                <Route path="/contact"   element={<Contact />} />
+                <Route path="/support"   element={<Support />} />
               </Route>
 
-              {/* ── PUBLIC ROUTES (No Sidebar) ── */}
-<Route path="/" element={<Index />} />
-<Route path="/blog" element={<Blog />} /> 
+              {/* ── AUTHENTICATED APP ROUTES (With Persistent Sidebar) ── */}
+              <Route element={<AppLayout />}>
+                {/* RelunoOS Primary Navigation */}
+                <Route path="/dashboard"         element={<Dashboard />} />
+                <Route path="/crm"               element={<CRM />} />
+                <Route path="/intake"            element={<AIIntake />} />
+                <Route path="/proposals"         element={<Proposals />} />
+                <Route path="/projects"          element={<Projects />} />
+                <Route path="/invoices"          element={<Invoices />} />
+                <Route path="/account"           element={<Account />} />
 
-{/* ── AUTHENTICATED APP ROUTES ── */}
-<Route element={<AppLayout />}>
-
-  {/* Core platform */}
-  <Route path="/dashboard"           element={<Dashboard />} />
-  <Route path="/my-cases"            element={<MyCases />} />
-  <Route path="/dashboard-analytics" element={<DashboardAnalytics />} />
-  <Route path="/account"             element={<Account />} />
-  <Route path="/legalquestionai"     element={<LegalQuestionAI />} />
-  <Route path="/documentgenerator"   element={<DocumentGenerator />} />
-  <Route path="/case-tracking"       element={<CaseTracking />} />
-
-  {/* Productivity */}
-  <Route path="/tasks"               element={<Tasks />} />
-  <Route path="/integrations"        element={<Integrations />} />
-  <Route path="/calendar"            element={<CalendarSync />} />
-
-  {/* Intelligence */}
-  <Route path="/pdf-analysis"        element={<PDFAnalysis />} />
-  <Route path="/analytics"           element={<Analytics />} />
-
-  {/* Output */}
-  <Route path="/export"              element={<Export />} />
-
-  {/* Templates library */}
-  <Route path="/templates"           element={<Templates />} />
-
-  {/* Legacy stubs — Redirected to real components to kill placeholders */}
-  <Route path="/claimtracker"        element={<CaseTracking />} />
-  <Route path="/workflowautomation"  element={<Tasks />} />
-</Route>
+                {/* Secondary stubs falling back gracefully */}
+                <Route path="/tasks"             element={<TempPlaceholder />} />
+                <Route path="/calendar"          element={<TempPlaceholder />} />
+                <Route path="/analytics"         element={<TempPlaceholder />} />
+                <Route path="/settings"          element={<TempPlaceholder />} />
+              </Route>
 
               {/* ── REDIRECTS ── */}
-              <Route path="/home"                 element={<Navigate to="/dashboard" replace />} />
-              <Route path="/settings"             element={<Navigate to="/account"   replace />} />
-              <Route path="/billing"              element={<Navigate to="/account"   replace />} />
-              <Route path="/settings-and-billing" element={<Navigate to="/account"   replace />} />
-              <Route path="/support"              element={<Navigate to="/contact"   replace />} />
+              <Route path="/home"                  element={<Navigate to="/dashboard" replace />} />
+              <Route path="/billing"               element={<Navigate to="/account"   replace />} />
+              <Route path="/settings-and-billing"  element={<Navigate to="/account"   replace />} />
 
               {/* ── 404 ── */}
               <Route path="*" element={<NotFound />} />

@@ -1,366 +1,623 @@
-// src/components/dashboard/DashboardSidebar.tsx
-
-import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useUser, useClerk } from "@clerk/clerk-react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  LayoutDashboard, MessageSquare, FileText, Briefcase,
-  Bell, Calendar, Mail, ScanLine, Activity, FolderKanban,
-  BarChart3, UserCircle, Settings, Download, BookOpen,
-  Newspaper, BookMarked, FileStack, Video, Users, HelpCircle,
-  LogOut, Crown, ChevronLeft, ChevronRight, ChevronDown,
-  Lock, Cpu, Search,
+  LayoutDashboard,
+  Users,
+  Bot,
+  FileText,
+  FolderKanban,
+  Receipt,
+  Settings,
+  UserCircle,
+  CreditCard,
+  Users2,
+  SlidersHorizontal,
+  LogOut,
+  HelpCircle,
+  PanelLeft,
+  ChevronsUpDown,
+  Search,
+  ArrowUpRight,
+  CornerDownLeft,
 } from "lucide-react";
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface NavItem {
   label: string;
   icon: React.ElementType;
   path: string;
-  requiredPlan?: "starter" | "pro";
 }
 
-interface NavSection {
-  id: string;
+interface SettingsItem {
   label: string;
-  items: NavItem[];
+  icon: React.ElementType;
+  path: string;
 }
 
-const learnItems = [
-  { label: "Blog",      icon: Newspaper,  path: "/blog"      },
-  { label: "Guides",    icon: BookMarked, path: "/guides"    },
-  { label: "Templates", icon: FileStack,  path: "/templates" },
-  { label: "Webinars",  icon: Video,      path: "/webinars"  },
-  { label: "Community", icon: Users,      path: "/community" },
+// ─── Navigation — RelunoOS, exactly 6 core modules ─────────────────────────
+const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { label: "CRM", icon: Users, path: "/crm" },
+  { label: "AI Intake", icon: Sparkles, path: "/intake" },
+  { label: "Proposals", icon: FileText, path: "/proposals" },
+  { label: "Projects", icon: FolderKanban, path: "/projects" },
+  { label: "Invoices", icon: Receipt, path: "/invoices" },
 ];
 
-const PlanBadge = ({ plan }: { plan: "starter" | "pro" }) => (
-  <span className={cn(
-    "text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border flex-shrink-0",
-    plan === "pro"
-      ? "text-blue-600 bg-blue-50 border-cyan-200"
-      : "text-emerald-500 bg-emerald-50 border-emerald-200"
-  )}>
-    {plan}
-  </span>
-);
+const SETTINGS_ITEMS: SettingsItem[] = [
+  { label: "Account", icon: UserCircle, path: "/account" },
+  { label: "Billing", icon: CreditCard, path: "/billing" },
+  { label: "Team", icon: Users2, path: "/team" },
+  { label: "Workspace Settings", icon: SlidersHorizontal, path: "/settings" },
+];
 
-const SectionHeader = ({ label, collapsed }: { label: string; collapsed: boolean }) => {
-  if (collapsed) return <div className="h-px bg-slate-200 mx-2 my-3" />;
-  return (
-    <div className="px-3 pt-5 pb-1.5">
-      <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.35em]">{label}</p>
-    </div>
-  );
-};
+interface CommandItem {
+  label: string;
+  icon: React.ElementType;
+  path: string;
+  category: string;
+}
 
-const NavButton = ({
-  item, isActive, collapsed, canAccess, onClick,
+const COMMAND_ITEMS: CommandItem[] = [
+  ...NAV_ITEMS.map((item) => ({ ...item, category: "Modules" })),
+  ...SETTINGS_ITEMS.map((item) => ({ ...item, category: "Settings" })),
+];
+
+// ─── Command Palette — anchored to the sidebar, light/dark aware ──────────
+function CommandPalette({
+  open,
+  onClose,
+  onSelect,
+  collapsed,
 }: {
-  item: NavItem; isActive: boolean; collapsed: boolean;
-  canAccess: boolean; onClick: () => void;
-}) => {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (path: string) => void;
+  collapsed: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setSearch("");
+      setActiveIndex(0);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open, onClose]);
+
+  const filtered = COMMAND_ITEMS.filter((item) =>
+    item.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const grouped = filtered.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, CommandItem[]>);
+
+  const handleKeyNav = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && filtered[activeIndex]) {
+      onSelect(filtered[activeIndex].path);
+      onClose();
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          ref={panelRef}
+          initial={{ opacity: 0, y: -6, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ duration: 0.14, ease: "easeOut" }}
+          className={cn(
+            "absolute top-full z-50 mt-2 flex max-h-[420px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_20px_60px_-12px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)] dark:backdrop-blur-xl",
+            collapsed ? "left-[52px] w-72" : "left-3 right-3 w-auto"
+          )}
+        >
+          <div className="flex items-center gap-2.5 border-b border-zinc-100 px-3.5 py-3 dark:border-white/[0.06]">
+            <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search modules, settings..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setActiveIndex(0);
+              }}
+              onKeyDown={handleKeyNav}
+              className="flex-1 bg-transparent text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+            />
+            <kbd className="rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-500">
+              ESC
+            </kbd>
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-1.5">
+            {Object.entries(grouped).length === 0 ? (
+              <div className="px-4 py-8 text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                No matches for "{search}"
+              </div>
+            ) : (
+              Object.entries(grouped).map(([category, items]) => {
+                return (
+                  <div key={category} className="px-1.5">
+                    <div className="px-2.5 pb-1 pt-2.5 text-[10.5px] font-semibold tracking-wide text-zinc-400 dark:text-zinc-500">
+                      {category}
+                    </div>
+                    {items.map((item) => {
+                      const idx = filtered.indexOf(item);
+                      const isActive = idx === activeIndex;
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.path}
+                          onMouseEnter={() => setActiveIndex(idx)}
+                          onClick={() => {
+                            onSelect(item.path);
+                            onClose();
+                          }}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
+                            isActive
+                              ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
+                              : "text-zinc-700 dark:text-zinc-300"
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+                          <span className="flex-1 truncate">{item.label}</span>
+                          {isActive && (
+                            <CornerDownLeft className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/60 px-3.5 py-2 text-[10.5px] text-zinc-400 dark:border-white/[0.06] dark:bg-white/[0.02] dark:text-zinc-500">
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-zinc-200 bg-white px-1 py-0.5 text-[9px] font-bold dark:border-white/10 dark:bg-white/5">
+                ↑↓
+              </kbd>
+              navigate
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-zinc-200 bg-white px-1 py-0.5 text-[9px] font-bold dark:border-white/10 dark:bg-white/5">
+                ↵
+              </kbd>
+              select
+            </span>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── Nav row ─────────────────────────────────────────────────────────────────
+function NavRow({
+  item,
+  isActive,
+  collapsed,
+  onClick,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  collapsed: boolean;
+  onClick: () => void;
+}) {
   const Icon = item.icon;
+  const isAiIntake = item.path === "/intake";
+
   return (
     <button
       onClick={onClick}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-200 group relative",
+        "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-100",
+        collapsed && "justify-center px-0 py-2.5",
         isActive
-          ? "bg-slate-900 text-white shadow-lg shadow-blue-500/20" 
-          : canAccess
-          ? "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-          : "text-slate-300 cursor-not-allowed"
+          ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
+          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-white"
       )}
     >
       {isActive && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-blue-600 rounded-r-full" />
+        <motion.span
+          layoutId="nav-active-pill"
+          className="absolute inset-0 rounded-xl bg-zinc-100 dark:bg-white/10"
+          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+        />
       )}
-      <Icon className={cn(
-        "w-4 h-4 flex-shrink-0 transition-colors",
-        isActive ? "text-blue-400" : "text-slate-400 group-hover:text-slate-600"
-      )} />
-      {!collapsed && (
-        <>
-          <span className="flex-1 text-left truncate">{item.label}</span>
-          {item.requiredPlan && !canAccess && (
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <PlanBadge plan={item.requiredPlan} />
-              <Lock className="w-2.5 h-2.5 text-slate-300" />
-            </div>
-          )}
-        </>
+      <Icon
+        className={cn(
+          "relative h-[17px] w-[17px] shrink-0",
+          isAiIntake
+            ? "text-blue-600 dark:text-blue-400"
+            : isActive
+            ? "text-zinc-900 dark:text-white"
+            : "text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-200"
+        )}
+        strokeWidth={2}
+      />
+      {!collapsed && <span className="relative flex-1 truncate text-left">{item.label}</span>}
+      
+      {/* AI Badge on the right */}
+      {!collapsed && isAiIntake && (
+        <span className="relative rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+          AI
+        </span>
       )}
     </button>
   );
-};
+}
 
+// ─── Settings menu — gear anchored at the bottom ───────────────────────────
+function SettingsMenu({ collapsed }: { collapsed: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const isSettingsActive = SETTINGS_ITEMS.some((s) => s.path === location.pathname);
+
+  return (
+    <div ref={ref} className="relative">
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
+            className={cn(
+              "absolute bottom-[calc(100%+6px)] z-50 w-56 rounded-xl border border-zinc-200 bg-white py-1.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)] dark:backdrop-blur-xl",
+              collapsed ? "left-0" : "left-0 right-0 w-full"
+            )}
+          >
+            {SETTINGS_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    setOpen(false);
+                    navigate(item.path);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white"
+                >
+                  <Icon className="h-[15px] w-[15px] text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title={collapsed ? "Settings" : undefined}
+        className={cn(
+          "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-[13px] font-medium transition-colors",
+          collapsed && "justify-center px-0 py-2.5",
+          isSettingsActive || open
+            ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
+            : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-white"
+        )}
+      >
+        <Settings className="h-[17px] w-[17px] shrink-0" strokeWidth={2} />
+        {!collapsed && <span className="truncate">Settings</span>}
+      </button>
+    </div>
+  );
+}
+
+// ─── Account menu ────────────────────────────────────────────────────────────
+function AccountMenu({
+  collapsed,
+  userName,
+  userInitials,
+  planLabel,
+  onLogout,
+  onUpgrade,
+}: {
+  collapsed: boolean;
+  userName: string;
+  userInitials: string;
+  planLabel: string;
+  onLogout: () => void;
+  onUpgrade: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
+            className={cn(
+              "absolute bottom-[calc(100%+6px)] z-50 w-56 rounded-xl border border-zinc-200 bg-white py-1.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)] dark:backdrop-blur-xl",
+              collapsed ? "left-0" : "left-0 right-0 w-full"
+            )}
+          >
+            <div className="border-b border-zinc-100 px-3 pb-2 pt-1 dark:border-white/[0.06]">
+              <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">{userName}</p>
+              <p className="text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">{planLabel} plan</p>
+            </div>
+            <button
+              onClick={() => {
+                setOpen(false);
+                navigate("/help");
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white"
+            >
+              <HelpCircle className="h-[15px] w-[15px] text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+              Help & Support
+            </button>
+            <div className="my-1 border-t border-zinc-100 dark:border-white/[0.06]" />
+            <button
+              onClick={() => {
+                setOpen(false);
+                onUpgrade();
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
+            >
+              <ArrowUpRight className="h-[15px] w-[15px]" strokeWidth={2} />
+              Upgrade Plan
+            </button>
+            <button
+              onClick={onLogout}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+            >
+              <LogOut className="h-[15px] w-[15px]" strokeWidth={2} />
+              Log out
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title={collapsed ? userName : undefined}
+        className={cn(
+          "group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 transition-colors duration-150",
+          "hover:bg-zinc-100 dark:hover:bg-white/[0.06]",
+          collapsed && "justify-center px-0"
+        )}
+      >
+        <div className="relative flex h-7 w-7 shrink-0 items-center justify-center">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[10.5px] font-semibold text-white ring-1 ring-zinc-200 dark:bg-gradient-to-br dark:from-zinc-100 dark:to-zinc-300 dark:text-zinc-900 dark:ring-white/10">
+            {userInitials}
+          </div>
+        </div>
+        {!collapsed && (
+          <>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100">{userName}</p>
+              <p className="truncate text-[11px] font-medium text-zinc-400 dark:text-zinc-500">{planLabel} plan</p>
+            </div>
+            <ChevronsUpDown
+              className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-600 dark:text-zinc-600 dark:group-hover:text-zinc-300"
+              strokeWidth={2}
+            />
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ─── Sidebar Main ────────────────────────────────────────────────────────────
 function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [learnOpen, setLearnOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
-  const { can, isPro, isStarter } = useSubscription();
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const { plan } = useSubscription();
 
-  // --- CRASH PREVENTION LOGIC ---
-  
-  // 1. Safe Name Retrieval with fallback
-  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
-
-  // 2. Safe Initials Calculation (Bulletproof version of your code)
-  const userInitials = (userName || "U")
-    .trim()
-    .split(/\s+/)
+  const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress.split("@")[0] || "User";
+  const userInitials = userName
+    .split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
-
-  // 3. Plan Logic
-  const planLabel = isPro ? "Pro" : isStarter ? "Starter" : "Free";
-  const planColor = isPro ? "text-blue-600" : isStarter ? "text-blue-500" : "text-zinc-400";
-
-  const accessMap: Record<string, boolean> = {
-    "/tasks":         can("smartReminders"),
-    "/integrations": can("calendarSync"),
-    "/pdf-analysis": can("pdfAnalysis"),
-    "/analytics":     Boolean(can("analyticsLevel")),
-    "/export":        can("exportSuite"),
-  };
-
-  const canAccessPath = (path: string): boolean => accessMap[path] ?? true;
-
-  const handleNavClick = (item: NavItem) => {
-    navigate(item.path);
-  };
+  const planLabel = (plan || "free").charAt(0).toUpperCase() + (plan || "free").slice(1);
 
   const handleLogout = async () => {
     await signOut();
     navigate("/login");
   };
 
-  const sections: NavSection[] = [
-    {
-      id: "platform",
-      label: "Platform",
-      items: [
-        { label: "Dashboard",     icon: LayoutDashboard, path: "/dashboard"         },
-        { label: "Legal AI",      icon: MessageSquare,   path: "/legalquestionai"   },
-        { label: "Doc Generator", icon: FileText,        path: "/documentgenerator" },
-        { label: "Case Vault",    icon: Briefcase,       path: "/my-cases"          },
-      ],
-    },
-    {
-      id: "productivity",
-      label: "Productivity",
-      items: [
-        { label: "Smart Reminders",    icon: Bell,     path: "/tasks",        requiredPlan: "starter" as const },
-        { label: "Calendar Sync",      icon: Calendar, path: "/calendar",     requiredPlan: "starter" as const },
-        { label: "Email Integrations", icon: Mail,     path: "/integrations", requiredPlan: "starter" as const },
-      ],
-    },
-    {
-      id: "intelligence",
-      label: "Intelligence",
-      items: [
-        { label: "PDF Analysis",          icon: ScanLine,     path: "/pdf-analysis", requiredPlan: "pro" as const },
-        { label: "Workload Intelligence", icon: Activity,     path: "/analytics",    requiredPlan: "pro" as const },
-        { label: "Case Tracking",         icon: FolderKanban, path: "/case-tracking"                                },
-      ],
-    },
-    {
-      id: "management",
-      label: "Management",
-      items: [
-        { label: "Management", icon: BarChart3, path: "/dashboard-analytics" },
-        { label: "Settings & Billing", icon: Settings, path: "/account" },
-      ],
-    },
-    {
-      id: "output",
-      label: "Output",
-      items: [
-        { label: "Professional Export", icon: Download, path: "/export", requiredPlan: "pro" as const },
-      ],
-    },
-  ];
+  const handleUpgrade = () => navigate("/billing");
+  const handleCommandSelect = (path: string) => navigate(path);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCollapsed(false);
+        setCommandOpen((o) => !o);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
-    <aside className={cn(
-      "h-screen sticky top-0 flex flex-col border-r border-slate-200 transition-all duration-300 z-30 bg-white shrink-0", // Added shrink-0
-      collapsed ? "w-[70px]" : "w-[256px]"
-    )}>
+    <aside
+      className={cn(
+        "sticky top-4 flex h-[calc(100vh-2rem)] shrink-0 flex-col overflow-visible rounded-3xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.12)] transition-[width] duration-200 ease-out dark:border-white/10 dark:bg-zinc-950 dark:shadow-[0_20px_60px_-16px_rgba(0,0,0,0.5)]",
+        collapsed ? "w-[64px]" : "w-[252px]"
+      )}
+    >
+      {/* subtle ambient gradient wash, visible only in dark mode */}
+      <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-b from-transparent via-transparent to-transparent dark:from-white/[0.04]" />
 
-      {/* Brand Header — "Legal OS" Style */}
-      <div className={cn(
-        "flex items-center gap-3 border-b border-slate-100 flex-shrink-0",
-        collapsed ? "p-4 justify-center" : "px-6 py-8"
-      )}>
-        {/* The Icon Box */}
-        <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-[0_8px_16px_rgba(37,99,235,0.2)] transform -rotate-3">
-          <span className="text-white font-display font-bold text-xl">R</span>
-        </div>
+{/* ── Header — clean editorial wordmark ── */}
+<div
+  className={cn(
+    "relative flex h-14 shrink-0 items-center",
+    collapsed ? "justify-center px-0" : "justify-between px-4"
+  )}
+>
+  {!collapsed && (
+    <Link to="/" className="flex items-center gap-2 rounded-md transition-opacity hover:opacity-90">
+      <span
+        className="font-serif text-2xl font-bold tracking-tight text-zinc-900 dark:text-white"
+        style={{ fontFamily: "'DM Serif Display', serif" }}
+      >
+        RELUNO<span className="text-blue-600"> OS</span>
+      </span>
+    </Link>
+  )}
 
-        {!collapsed && (
-          <div className="flex flex-col">
-            <h1 className="font-display text-2xl font-bold leading-[1.02] tracking-tighter text-blue-600">
-              Reluno<span className="text-zinc-900">.</span>
-            </h1>
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-400 mt-0.5">
-              Legal OS
-            </p>
+  <button
+    onClick={() => setCollapsed((c) => !c)}
+    className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
+    title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+  >
+    <PanelLeft className="h-[16px] w-[16px]" strokeWidth={2} />
+  </button>
+</div>
+
+      {/* ── Search / Command Palette trigger ── */}
+      <div ref={searchWrapRef} className="relative px-3 pt-1 pb-3">
+        <button
+          onClick={() => setCommandOpen((o) => !o)}
+          title={collapsed ? "Search (⌘K)" : undefined}
+          className={cn(
+            "flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400 dark:hover:border-white/20 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100",
+            collapsed && "justify-center px-0 py-2.5",
+            commandOpen &&
+              "border-blue-300 bg-blue-50/50 text-zinc-900 dark:border-white/25 dark:bg-white/[0.07] dark:text-zinc-100"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 shrink-0" strokeWidth={2} />
+            {!collapsed && <span className="text-[12.5px] font-medium">Search</span>}
           </div>
-        )}
+          {!collapsed && (
+            <kbd className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-zinc-400 shadow-2xs dark:border-white/10 dark:bg-white/5 dark:text-zinc-500">
+              ⌘K
+            </kbd>
+          )}
+        </button>
+
+        <CommandPalette
+          open={commandOpen}
+          onClose={() => setCommandOpen(false)}
+          onSelect={handleCommandSelect}
+          collapsed={collapsed}
+        />
       </div>
 
-      {/* User Info — Minimalist & Clean */}
-      <div className={cn(
-        "flex items-center gap-3 border-b border-slate-100 flex-shrink-0",
-        collapsed ? "p-3 justify-center" : "px-6 py-4"
-      )}>
-        <div className="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center flex-shrink-0">
-          <span className="text-zinc-600 text-[10px] font-bold">{userInitials}</span>
-        </div>
-        {!collapsed && (
-          <div className="overflow-hidden flex-1">
-            <p className="text-[13px] font-semibold text-zinc-900 truncate tracking-tight">
-              {userName}
-            </p>
-            <p className="text-[10px] font-medium text-blue-600 uppercase tracking-widest">
-              {planLabel}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation — Straight into the tools */}
+      {/* ── Nav — exactly 6 modules, no section labels needed ── */}
       <nav
-        className="flex-1 overflow-y-auto px-3 pb-4 pt-4"
+        className="relative flex-1 space-y-0.5 overflow-y-auto px-3 pb-2"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         <style>{`nav::-webkit-scrollbar { display: none; }`}</style>
-
-        {sections.map((section) => (
-          <div key={section.id} className="mb-6">
-            <SectionHeader label={section.label} collapsed={collapsed} />
-            <div className="space-y-1 mt-2">
-              {section.items.map((item) => (
-                <NavButton
-                  key={`${section.id}-${item.label}`}
-                  item={item}
-                  isActive={location.pathname === item.path}
-                  collapsed={collapsed}
-                  canAccess={canAccessPath(item.path)}
-                  onClick={() => handleNavClick(item)}
-                />
-              ))}
-            </div>
-          </div>
+        {NAV_ITEMS.map((item) => (
+          <NavRow
+            key={item.path}
+            item={item}
+            isActive={location.pathname === item.path}
+            collapsed={collapsed}
+            onClick={() => navigate(item.path)}
+          />
         ))}
-
-        {/* Archives dropdown */}
-        <div>
-          <SectionHeader label="Archives" collapsed={collapsed} />
-          <div className="space-y-0.5">
-            <button
-              onClick={() => collapsed ? navigate("/blog") : setLearnOpen((o) => !o)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[11px] font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-all border border-transparent uppercase tracking-tight"
-            >
-              <BookOpen className="w-4 h-4 flex-shrink-0 text-slate-400" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left">Resources</span>
-                  <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform duration-200", learnOpen && "rotate-180")} />
-                </>
-              )}
-            </button>
-            {learnOpen && !collapsed && (
-              <div className="ml-3 pl-3 border-l border-slate-200 space-y-0.5 mt-1">
-                {learnItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.label}
-                      onClick={() => navigate(item.path)}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
-                        location.pathname === item.path
-                          ? "text-blue-600 bg-blue-50"
-                          : "text-slate-400 hover:text-slate-700 hover:bg-slate-50"
-                      )}
-                    >
-                      <Icon className="w-3 h-3 flex-shrink-0" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
       </nav>
 
-      {/* Footer */}
-      <div className="flex-shrink-0 border-t border-slate-100 p-3 space-y-1 bg-white">
-        {/* Upgrade CTA */}
-        {!isPro && !collapsed && (
-          <button
-            onClick={() => navigate("/pricing")}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black text-white uppercase tracking-widest bg-blue-600 hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] mb-2"
-          >
-            <Crown className="w-3.5 h-3.5" />
-            Upgrade to Pro
-          </button>
-        )}
-        {!isPro && collapsed && (
-          <button
-            onClick={() => navigate("/pricing")}
-            title="Upgrade to Pro"
-            className="w-full flex items-center justify-center p-2.5 rounded-xl bg-blue-50 border border-cyan-200 hover:bg-cyan-100 transition-all mb-1"
-          >
-            <Crown className="w-4 h-4 text-blue-600" />
-          </button>
-        )}
-
-        <button
-          onClick={() => navigate("/support")}
-          title={collapsed ? "Help & Support" : undefined}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-all uppercase tracking-tight border border-transparent"
-        >
-          <HelpCircle className="w-4 h-4 flex-shrink-0 text-slate-400" />
-          {!collapsed && <span>Help & Support</span>}
-        </button>
-
-        <button
-          onClick={handleLogout}
-          title={collapsed ? "Disconnect" : undefined}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:bg-red-50 hover:text-red-500 transition-all uppercase tracking-tight border border-transparent"
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0 text-slate-400" />
-          {!collapsed && <span>Disconnect</span>}
-        </button>
-
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all uppercase tracking-tight border border-transparent"
-        >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4 flex-shrink-0" />
-          ) : (
-            <>
-              <ChevronLeft className="w-4 h-4 flex-shrink-0" />
-              <span>Collapse</span>
-            </>
-          )}
-        </button>
+      {/* ── Footer: Settings + Account ── */}
+      <div className="relative shrink-0 space-y-0.5 border-t border-zinc-100 p-3 dark:border-white/[0.06]">
+        <SettingsMenu collapsed={collapsed} />
+        <AccountMenu
+          collapsed={collapsed}
+          userName={userName}
+          userInitials={userInitials}
+          planLabel={planLabel}
+          onLogout={handleLogout}
+          onUpgrade={handleUpgrade}
+        />
       </div>
     </aside>
   );
 }
 
-export default DashboardSidebar;
-export { DashboardSidebar };
+// ─── App Shell — floating sidebar + content pane, wraps every dashboard page ─
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen w-full gap-4 bg-zinc-100 p-4 dark:bg-black">
+      <DashboardSidebar />
+      <main className="min-w-0 flex-1 overflow-y-auto rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950">
+        {children}
+      </main>
+    </div>
+  );
+}
+
+export { DashboardSidebar, DashboardShell };
+export default DashboardShell;

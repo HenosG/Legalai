@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Organization {
+  id               String   @id @default(cuid())
+  name             String
+  clerkOrgId       String   @unique
+  plan             String   @default("free")
+  stripeCustomerId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  users            User[]
+  clients          Client[]
+  leads            Lead[]
+  proposals        Proposal[]
+  contracts        Contract[]
+  projects         Project[]
+  invoices         Invoice[]
+  payments         Payment[]    // Added reverse relation
+  tasks            Task[]
+  activityLogs     ActivityLog[]
+  documents        Document[]
+  
+  @@index([clerkOrgId])
+}
+
+model User {
+  id               String       @id // Clerk user ID
+  email            String       @unique
+  firstName        String?
+  lastName         String?
+  clerkOrgId       String?
+  organization     Organization? @relation(fields: [clerkOrgId], references: [id])
+  plan             String       @default("free")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  
+  clients          Client[]
+  leads            Lead[]
+  proposals        Proposal[]
+  contracts        Contract[]
+  projects         Project[]
+  invoices         Invoice[]
+  payments         Payment[]    // Added reverse relation
+  tasks            Task[]
+  activityLogs     ActivityLog[]
+  documents        Document[]
+}
+
+model Lead {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  company        String?
+  phone          String?
+  source         String?
+  status         String       @default("NEW")
+  estimatedValue Float?
+  notes          String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Client {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  company        String?
+  phone          String?
+  status         String       @default("ACTIVE")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  projects       Project[]
+  proposals      Proposal[]
+  contracts      Contract[]
+  invoices       Invoice[]
+  tasks          Task[]
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Proposal {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title          String
+  amount         Float
+  status         String       @default("DRAFT")
+  documentUrl    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Contract {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  proposalId     String?
+  title          String
+  value          Float
+  status         String       @default("DRAFT")
+  signedAt       DateTime?
+  expiresAt      DateTime?
+  documentUrl    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Project {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name           String
+  status         String       @default("IN_PROGRESS")
+  budget         Float?
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  tasks          Task[]
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Invoice {
+  id              String       @id @default(uuid())
+  userId          String
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  amount          Float
+  amountPaid      Float        @default(0)
+  status          String       @default("UNPAID")
+  dueDate         DateTime?
+  stripeInvoiceId String?      @unique
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  payments        Payment[]
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Payment {
+  id                    String       @id @default(uuid())
+  userId                String
+  organizationId        String?
+  organization          Organization? @relation(fields: [organizationId], references: [id])
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceId             String
+  invoice               Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount                Float
+  method                String
+  status                String       @default("completed")
+  stripePaymentIntentId String?      @unique
+  createdAt             DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Task {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?      @db.Text
+  status         String       @default("pending")
+  priority       String       @default("medium")
+  dueDate        DateTime?
+  projectId      String?
+  clientId       String?
+  project        Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client         Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model ActivityLog {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action         String
+  description    String
+  module         String?      // crm, proposals, projects, invoices
+  targetId       String?      // ID of related record (client, proposal, etc.)
+  createdAt      DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Document {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           String
+  typeId         String
+  fileName       String
+  fileUrl        String
+  fileSize       Int
+  mimeType       String
+  createdAt      DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  subject   String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model WebinarAccessRequest {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  fullName  String
+  company   String?
+  jobTitle  String?
+  useCase   String
+  message   String?
+  createdAt DateTime @default(now())
+}
