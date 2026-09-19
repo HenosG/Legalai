@@ -1,18 +1,13 @@
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-
 interface PageLayoutProps {
   children: React.ReactNode;
 }
 
 const PageLayout = ({ children }: PageLayoutProps) => {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="pt-20 lg:pt-24">
+    <div className="w-full px-6 lg:px-8 py-8">
+      <main className="w-full">
         {children}
       </main>
-      <Footer />
     </div>
   );
 };

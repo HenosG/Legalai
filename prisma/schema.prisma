@@ -9,251 +9,360 @@ datasource db {
 }
 
 model Organization {
-  id               String   @id @default(cuid())
+  id               String       @id @default(cuid())
   name             String
-  clerkOrgId       String   @unique
-  plan             String   @default("free")
-  stripeCustomerId String?  @unique
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  clerkOrgId       String       @unique
+  plan             String       @default("free")
+  stripeCustomerId String?      @unique
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   
-  users            User[]
-  clients          Client[]
-  leads            Lead[]
-  proposals        Proposal[]
-  contracts        Contract[]
-  projects         Project[]
-  invoices         Invoice[]
-  payments         Payment[]    // Added reverse relation
-  tasks            Task[]
-  activityLogs     ActivityLog[]
-  documents        Document[]
+  users          User[]
+  clients        Client[]
+  leads          Lead[]
+  aiIntakes      AIIntake[]   // 👈 Added AI Intake relation
+  proposals      Proposal[]
+  contracts      Contract[]
+  projects       Project[]
+  invoices       Invoice[]
+  payments       Payment[]
+  tasks          Task[]
+  activityLogs   ActivityLog[]
+  documents      Document[]
   
   @@index([clerkOrgId])
 }
 
 model User {
-  id               String       @id // Clerk user ID
-  email            String       @unique
-  firstName        String?
-  lastName         String?
-  clerkOrgId       String?
-  organization     Organization? @relation(fields: [clerkOrgId], references: [id])
-  plan             String       @default("free")
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id            String        @id // Clerk user ID
+  email         String        @unique
+  firstName     String?
+  lastName      String?
+  clerkOrgId    String?
+  organization  Organization? @relation(fields: [clerkOrgId], references: [id])
+  plan          String        @default("free")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   
-  clients          Client[]
-  leads            Lead[]
-  proposals        Proposal[]
-  contracts        Contract[]
-  projects         Project[]
-  invoices         Invoice[]
-  payments         Payment[]    // Added reverse relation
-  tasks            Task[]
-  activityLogs     ActivityLog[]
-  documents        Document[]
+  workspace     Workspace?    // Linked workspace profile for onboarding
+
+  clients       Client[]
+  leads         Lead[]
+  aiIntakes     AIIntake[]    // 👈 Added AI Intake relation
+  proposals     Proposal[]
+  contracts     Contract[]
+  projects      Project[]
+  invoices      Invoice[]
+  payments      Payment[]
+  tasks         Task[]
+  activityLogs  ActivityLog[]
+  documents     Document[]
+}
+
+model Workspace {
+  id                 String       @id @default(cuid())
+  userId             String       @unique // Clerk user ID
+  organizationId     String?      @unique // Clerk org ID (for teams)
+
+  // Business Profile
+  businessName       String
+  businessSlug       String       @unique // For subdomain: slug.reluno.com
+  currency           String       @default("USD")
+  country            String       @default("US")
+  industry           String       // e.g., "web_design", "plumbing", "marketing"
+  businessType       String       // e.g., "freelancer", "agency", "llc"
+  agentName          String       @default("Rulo") // Custom AI agent naming support
+
+  // AI-Generated Config Links
+  proposalTemplateId String? 
+  crmPipelineId      String? 
+  invoiceTemplateId  String? 
+
+  // Onboarding State
+  isOnboarded        Boolean      @default(false)
+  onboardedAt        DateTime?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  // Relations
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  onboardingData     OnboardingResponse[]
+  proposalTemplates  ProposalTemplate[]
+  crmPipelines       CrmPipeline[]
+  invoiceTemplates   InvoiceTemplate[]
+
+  @@index([userId])
+  @@index([businessSlug])
+}
+
+model OnboardingResponse {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  questionKey String    // e.g., "avg_project_value", "pricing_model"
+  answer      String    @db.Text
+  metadata    Json?     // Additional AI context
+
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId])
 }
 
 model Lead {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   userId         String
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   email          String?
   company        String?
   phone          String?
   source         String?
-  status         String       @default("NEW")
+  status         String         @default("NEW")
   estimatedValue Float?
-  notes          String?      @db.Text
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  notes          String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   
   @@index([userId])
   @@index([organizationId])
+  @@index([status])
+}
+
+// ── AI Intake Model (Required for Claude's backend script) ──
+model AIIntake {
+  id             String         @id @default(cuid())
+  userId         String
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  rawMessage     String         @db.Text
+  contactName    String
+  company        String?
+  email          String?
+  projectType    String
+  budgetMin      Float?
+  budgetMax      Float?
+  timeline       String?
+  requirements   String[]       // Array of required features/scope items
+  score          Int            @default(0)
+  scoreBreakdown Json?          // Breakdown of budget, timeline, scope, urgency scores
+  confidence     Json?          // AI extraction confidence percentages
+  status         String         @default("PENDING_REVIEW") // PENDING_REVIEW, HIGH_PRIORITY, ACCEPTED, REJECTED
+  clientId       String?        // Populated when accepted into a Client record
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
 }
 
 model Client {
-  id             String       @id @default(uuid())
-  userId         String
+  id             String         @id @default(cuid())
+  userId         String         // Owner's Clerk ID reference
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   email          String?
   company        String?
   phone          String?
-  status         String       @default("ACTIVE")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  status         String         @default("active") // lead, active, inactive
+  tags           String[]       // Array of tags
+  notes          String?        @db.Text // General client-level notes summary
+  
+  assignedUserId String?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   
   projects       Project[]
   proposals      Proposal[]
   contracts      Contract[]
   invoices       Invoice[]
   tasks          Task[]
+  clientNotes    ClientNote[]
   
   @@index([userId])
   @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([assignedUserId])
+}
+
+model ClientNote {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
 }
 
 model Proposal {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   userId         String
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientId       String
-  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   title          String
   amount         Float
-  status         String       @default("DRAFT")
+  status         String         @default("DRAFT")
   documentUrl    String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   
   @@index([userId])
   @@index([organizationId])
 }
 
 model Contract {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   userId         String
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientId       String
-  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   proposalId     String?
   title          String
   value          Float
-  status         String       @default("DRAFT")
+  status         String         @default("DRAFT")
   signedAt       DateTime?
   expiresAt      DateTime?
   documentUrl    String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   
   @@index([userId])
   @@index([organizationId])
 }
 
 model Project {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   userId         String
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientId       String
-  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name           String
-  status         String       @default("IN_PROGRESS")
+  status         String         @default("IN_PROGRESS")
+  progress       Int            @default(0)
   budget         Float?
   startDate      DateTime?
   endDate        DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   
   tasks          Task[]
   
   @@index([userId])
   @@index([organizationId])
+  @@index([clientId])
 }
 
 model Invoice {
-  id              String       @id @default(uuid())
+  id              String         @id @default(uuid())
   userId          String
   organizationId  String?
-  organization    Organization? @relation(fields: [organizationId], references: [id])
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization?  @relation(fields: [organizationId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientId        String
-  client          Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client          Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   amount          Float
-  amountPaid      Float        @default(0)
-  status          String       @default("UNPAID")
+  amountPaid      Float          @default(0)
+  status          String         @default("UNPAID") // UNPAID, PAID, OVERDUE
   dueDate         DateTime?
-  stripeInvoiceId String?      @unique
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  stripeInvoiceId String?        @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   
   payments        Payment[]
   
   @@index([userId])
   @@index([organizationId])
+  @@index([clientId])
 }
 
 model Payment {
-  id                    String       @id @default(uuid())
+  id                    String        @id @default(uuid())
   userId                String
   organizationId        String?
   organization          Organization? @relation(fields: [organizationId], references: [id])
-  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   invoiceId             String
-  invoice               Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice               Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   amount                Float
   method                String
-  status                String       @default("completed")
-  stripePaymentIntentId String?      @unique
-  createdAt             DateTime     @default(now())
+  status                String        @default("completed")
+  stripePaymentIntentId String?       @unique
+  createdAt             DateTime      @default(now())
   
   @@index([userId])
   @@index([organizationId])
 }
 
 model Task {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   userId         String
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
-  description    String?      @db.Text
-  status         String       @default("pending")
-  priority       String       @default("medium")
+  description    String?        @db.Text
+  status         String         @default("pending")
+  priority       String         @default("medium")
   dueDate        DateTime?
   projectId      String?
   clientId       String?
-  project        Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  client         Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  project        Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client         Client?        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   
   @@index([userId])
   @@index([organizationId])
 }
 
 model ActivityLog {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   userId         String
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   action         String
   description    String
-  module         String?      // crm, proposals, projects, invoices
-  targetId       String?      // ID of related record (client, proposal, etc.)
-  createdAt      DateTime     @default(now())
+  module         String?        
+  targetId       String?        
+  createdAt      DateTime       @default(now())
   
   @@index([userId])
   @@index([organizationId])
 }
 
 model Document {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   userId         String
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   type           String
   typeId         String
   fileName       String
   fileUrl        String
   fileSize       Int
   mimeType       String
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime       @default(now())
   
   @@index([userId])
   @@index([organizationId])
@@ -278,4 +387,40 @@ model WebinarAccessRequest {
   useCase   String
   message   String?
   createdAt DateTime @default(now())
+}
+
+model ProposalTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  content     Json      // Stores sections, line items, pricing model
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+}
+
+model CrmPipeline {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  stages      Json      // Stores array of stages
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+}
+
+model InvoiceTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  content     Json      // Stores fields, line items, payment terms
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
 }
