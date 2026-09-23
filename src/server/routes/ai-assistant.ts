@@ -28,7 +28,7 @@ async function processInternalQuery(userId: string, query: string) {
   // Example: "Show me active clients"
   if (lowerQuery.includes('active client') || lowerQuery.includes('clients')) {
     const clients = await prisma.client.findMany({
-      where: { clerkId: userId },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
     
@@ -42,12 +42,12 @@ async function processInternalQuery(userId: string, query: string) {
   // Example: "What is total outstanding invoice amount"
   if (lowerQuery.includes('invoice') || lowerQuery.includes('revenue')) {
     const invoices = await prisma.invoice.findMany({
-      where: { clerkId: userId },
+      where: { userId },
     });
     
     const total = invoices.reduce((sum, inv) => sum + inv.amount, 0);
     const paid = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.amount, 0);
-    const unpaid = invoices.filter(inv => inv.status === 'unpaid').reduce((sum, inv) => sum + inv.amount, 0);
+    const unpaid = invoices.filter(inv => inv.status !== 'paid').reduce((sum, inv) => sum + inv.amount, 0);
     
     return {
       type: 'invoice_summary',
@@ -59,7 +59,7 @@ async function processInternalQuery(userId: string, query: string) {
   // Example: "Show me my projects"
   if (lowerQuery.includes('project')) {
     const projects = await prisma.project.findMany({
-      where: { clerkId: userId },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
     

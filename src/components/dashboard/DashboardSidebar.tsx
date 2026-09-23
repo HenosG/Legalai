@@ -12,10 +12,7 @@ import {
   FolderKanban,
   Receipt,
   Settings,
-  UserCircle,
   CreditCard,
-  Users2,
-  SlidersHorizontal,
   LogOut,
   HelpCircle,
   PanelLeft,
@@ -26,19 +23,19 @@ import {
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
 interface NavItem {
   label: string;
   icon: React.ElementType;
   path: string;
 }
 
-interface SettingsItem {
-  label: string;
-  icon: React.ElementType;
-  path: string;
+interface CommandItem extends NavItem {
+  category: string;
 }
 
 // ─── Navigation — RelunoOS Core Modules ──────────────────────────────────────
+
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "CRM", icon: Users, path: "/crm" },
@@ -48,26 +45,19 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Invoices", icon: Receipt, path: "/invoices" },
 ];
 
-const SETTINGS_ITEMS: SettingsItem[] = [
-  { label: "Account", icon: UserCircle, path: "/account" },
-  { label: "Billing", icon: CreditCard, path: "/billing" },
-  { label: "Team", icon: Users2, path: "/team" },
-  { label: "Workspace Settings", icon: SlidersHorizontal, path: "/settings" },
-];
-
-interface CommandItem {
-  label: string;
-  icon: React.ElementType;
-  path: string;
-  category: string;
-}
+const SETTINGS_ITEM: NavItem = {
+  label: "Settings",
+  icon: Settings,
+  path: "/account",
+};
 
 const COMMAND_ITEMS: CommandItem[] = [
   ...NAV_ITEMS.map((item) => ({ ...item, category: "Modules" })),
-  ...SETTINGS_ITEMS.map((item) => ({ ...item, category: "Settings" })),
+  { ...SETTINGS_ITEM, category: "Workspace" },
 ];
 
-// ─── Command Palette ──────────────────────────────────────────────────────
+// ─── Command Palette ─────────────────────────────────────────────────────────
+
 function CommandPalette({
   open,
   onClose,
@@ -83,26 +73,27 @@ function CommandPalette({
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open) {
-      setSearch("");
-      setActiveIndex(0);
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
+    if (!open) return;
+
+    setSearch("");
+    setActiveIndex(0);
+
+    requestAnimationFrame(() => inputRef.current?.focus());
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
     };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
+
+    document.addEventListener("keydown", handleKeyDown);
+
     return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open, onClose]);
 
@@ -110,20 +101,29 @@ function CommandPalette({
     item.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  const grouped = filtered.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
+  const grouped = filtered.reduce<Record<string, CommandItem[]>>((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+
     acc[item.category].push(item);
     return acc;
-  }, {} as Record<string, CommandItem[]>);
+  }, {});
 
-  const handleKeyNav = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && filtered[activeIndex]) {
+  const handleKeyNav = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((current) => Math.min(current + 1, filtered.length - 1));
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((current) => Math.max(current - 1, 0));
+      return;
+    }
+
+    if (event.key === "Enter" && filtered[activeIndex]) {
       onSelect(filtered[activeIndex].path);
       onClose();
     }
@@ -132,80 +132,90 @@ function CommandPalette({
   return (
     <AnimatePresence>
       {open && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs"
-          onClick={onClose}
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          onMouseDown={onClose}
         >
           <motion.div
             ref={panelRef}
-            onClick={(e) => e.stopPropagation()}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
-            className="flex h-[420px] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_20px_60px_-12px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-zinc-900 dark:shadow-[0_20px_60px_-12px_rgba(0,0,0,0.7)]"
+            onMouseDown={(event) => event.stopPropagation()}
+            className="flex h-[420px] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_20px_60px_-12px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-zinc-900"
           >
             <div className="flex items-center gap-2.5 border-b border-zinc-100 px-3.5 py-3 dark:border-white/[0.06]">
-              <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+              <Search
+                className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500"
+                strokeWidth={2}
+              />
+
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Search modules, settings..."
+                placeholder="Search modules and settings..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
+                onChange={(event) => {
+                  setSearch(event.target.value);
                   setActiveIndex(0);
                 }}
                 onKeyDown={handleKeyNav}
                 className="flex-1 bg-transparent text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
+
               <kbd className="rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-500">
                 ESC
               </kbd>
             </div>
 
             <div className="flex-1 overflow-y-auto py-1.5">
-              {Object.entries(grouped).length === 0 ? (
+              {Object.keys(grouped).length === 0 ? (
                 <div className="px-4 py-8 text-center text-[13px] text-zinc-400 dark:text-zinc-500">
-                  No matches for "{search}"
+                  No matches for “{search}”
                 </div>
               ) : (
-                Object.entries(grouped).map(([category, items]) => {
-                  return (
-                    <div key={category} className="px-1.5">
-                      <div className="px-2.5 pb-1 pt-2.5 text-[10.5px] font-semibold tracking-wide text-zinc-400 dark:text-zinc-500">
-                        {category}
-                      </div>
-                      {items.map((item) => {
-                        const idx = filtered.indexOf(item);
-                        const isActive = idx === activeIndex;
-                        const Icon = item.icon;
-                        return (
-                          <button
-                            key={item.path}
-                            onMouseEnter={() => setActiveIndex(idx)}
-                            onClick={() => {
-                              onSelect(item.path);
-                              onClose();
-                            }}
-                            className={cn(
-                              "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
-                              isActive
-                                ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
-                                : "text-zinc-700 dark:text-zinc-300"
-                            )}
-                          >
-                            <Icon className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
-                            <span className="flex-1 truncate">{item.label}</span>
-                            {isActive && (
-                              <CornerDownLeft className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
-                            )}
-                          </button>
-                        );
-                      })}
+                Object.entries(grouped).map(([category, items]) => (
+                  <div key={category} className="px-1.5">
+                    <div className="px-2.5 pb-1 pt-2.5 text-[10.5px] font-semibold tracking-wide text-zinc-400 dark:text-zinc-500">
+                      {category}
                     </div>
-                  );
-                })
+
+                    {items.map((item) => {
+                      const itemIndex = filtered.indexOf(item);
+                      const isActive = itemIndex === activeIndex;
+                      const Icon = item.icon;
+
+                      return (
+                        <button
+                          key={item.path}
+                          type="button"
+                          onMouseEnter={() => setActiveIndex(itemIndex)}
+                          onClick={() => {
+                            onSelect(item.path);
+                            onClose();
+                          }}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
+                            isActive
+                              ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
+                              : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-white/[0.05]"
+                          )}
+                        >
+                          <Icon
+                            className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500"
+                            strokeWidth={2}
+                          />
+                          <span className="flex-1 truncate">{item.label}</span>
+
+                          {isActive && (
+                            <CornerDownLeft className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))
               )}
             </div>
 
@@ -216,6 +226,7 @@ function CommandPalette({
                 </kbd>
                 navigate
               </span>
+
               <span className="flex items-center gap-1">
                 <kbd className="rounded border border-zinc-200 bg-white px-1 py-0.5 text-[9px] font-bold dark:border-white/10 dark:bg-white/5">
                   ↵
@@ -230,7 +241,8 @@ function CommandPalette({
   );
 }
 
-// ─── Nav row ─────────────────────────────────────────────────────────────────
+// ─── Nav Row ─────────────────────────────────────────────────────────────────
+
 function NavRow({
   item,
   isActive,
@@ -247,6 +259,7 @@ function NavRow({
 
   return (
     <button
+      type="button"
       onClick={onClick}
       title={collapsed ? item.label : undefined}
       className={cn(
@@ -264,6 +277,7 @@ function NavRow({
           transition={{ type: "spring", stiffness: 500, damping: 40 }}
         />
       )}
+
       <Icon
         className={cn(
           "relative h-[17px] w-[17px] shrink-0",
@@ -275,8 +289,11 @@ function NavRow({
         )}
         strokeWidth={2}
       />
-      {!collapsed && <span className="relative flex-1 truncate text-left">{item.label}</span>}
-      
+
+      {!collapsed && (
+        <span className="relative flex-1 truncate text-left">{item.label}</span>
+      )}
+
       {!collapsed && isAiIntake && (
         <span className="relative rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
           AI
@@ -286,86 +303,57 @@ function NavRow({
   );
 }
 
-// ─── Settings menu ───────────────────────────────────────────────────────────
-function SettingsMenu({
+// ─── Settings Row (Direct Navigation Only) ───────────────────────────────────
+
+function SettingsRow({
   collapsed,
-  onExpandIfNeeded,
+  isActive,
+  onClick,
 }: {
   collapsed: boolean;
-  onExpandIfNeeded: () => void;
+  isActive: boolean;
+  onClick: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const isSettingsActive = SETTINGS_ITEMS.some((s) => s.path === location.pathname);
-
   return (
-    <div ref={ref} className="relative">
-      <AnimatePresence>
-        {open && !collapsed && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.14, ease: "easeOut" }}
-            className="absolute bottom-[calc(100%+6px)] left-0 right-0 z-50 w-full rounded-xl border border-zinc-200 bg-white py-1.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)] dark:backdrop-blur-xl"
-          >
-            {SETTINGS_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    setOpen(false);
-                    navigate(item.path);
-                  }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white"
-                >
-                  <Icon className="h-[15px] w-[15px] text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
-                  {item.label}
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <button
+      type="button"
+      onClick={onClick}
+      title={collapsed ? "Settings" : undefined}
+      className={cn(
+        "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-[13px] font-medium transition-colors",
+        collapsed && "justify-center px-0 py-2.5",
+        isActive
+          ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
+          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-white"
+      )}
+    >
+      {isActive && (
+        <motion.span
+          layoutId="settings-active-pill"
+          className="absolute inset-0 rounded-xl bg-zinc-100 dark:bg-white/10"
+          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+        />
+      )}
 
-      <button
-        onClick={() => {
-          if (collapsed) {
-            onExpandIfNeeded();
-            setOpen(false);
-          } else {
-            setOpen((o) => !o);
-          }
-        }}
-        title="Settings"
+      <Settings
         className={cn(
-          "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-[13px] font-medium transition-colors",
-          collapsed && "justify-center px-0 py-2.5",
-          isSettingsActive || open
-            ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
-            : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-white"
+          "relative h-[17px] w-[17px] shrink-0",
+          isActive
+            ? "text-zinc-900 dark:text-white"
+            : "text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-200"
         )}
-      >
-        <Settings className="h-[17px] w-[17px] shrink-0" strokeWidth={2} />
-        {!collapsed && <span className="truncate">Settings</span>}
-      </button>
-    </div>
+        strokeWidth={2}
+      />
+
+      {!collapsed && (
+        <span className="relative flex-1 truncate text-left">Settings</span>
+      )}
+    </button>
   );
 }
 
-// ─── Account menu ────────────────────────────────────────────────────────────
+// ─── Account Menu ────────────────────────────────────────────────────────────
+
 function AccountMenu({
   collapsed,
   userName,
@@ -388,11 +376,17 @@ function AccountMenu({
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, []);
 
   return (
@@ -407,33 +401,50 @@ function AccountMenu({
             className="absolute bottom-[calc(100%+6px)] left-0 right-0 z-50 w-full rounded-xl border border-zinc-200 bg-white py-1.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)] dark:backdrop-blur-xl"
           >
             <div className="border-b border-zinc-100 px-3 pb-2 pt-1 dark:border-white/[0.06]">
-              <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">{userName}</p>
-              <p className="text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">{planLabel} plan</p>
+              <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">
+                {userName}
+              </p>
+              <p className="text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">
+                {planLabel} plan
+              </p>
             </div>
+
             <button
+              type="button"
               onClick={() => {
                 setOpen(false);
-                navigate("/help");
+                navigate("/support");
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white"
             >
-              <HelpCircle className="h-[15px] w-[15px] text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+              <HelpCircle
+                className="h-[15px] w-[15px] text-zinc-400 dark:text-zinc-500"
+                strokeWidth={2}
+              />
               Help & Support
             </button>
+
             <div className="my-1 border-t border-zinc-100 dark:border-white/[0.06]" />
+
             <button
+              type="button"
               onClick={() => {
                 setOpen(false);
                 onUpgrade();
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
             >
               <ArrowUpRight className="h-[15px] w-[15px]" strokeWidth={2} />
               Upgrade Plan
             </button>
+
             <button
-              onClick={onLogout}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onLogout();
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
             >
               <LogOut className="h-[15px] w-[15px]" strokeWidth={2} />
               Log out
@@ -443,13 +454,15 @@ function AccountMenu({
       </AnimatePresence>
 
       <button
+        type="button"
         onClick={() => {
           if (collapsed) {
             onExpandIfNeeded();
             setOpen(false);
-          } else {
-            setOpen((o) => !o);
+            return;
           }
+
+          setOpen((current) => !current);
         }}
         title={userName}
         className={cn(
@@ -459,16 +472,22 @@ function AccountMenu({
         )}
       >
         <div className="relative flex h-7 w-7 shrink-0 items-center justify-center">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[10.5px] font-semibold text-white ring-1 ring-zinc-200 dark:bg-gradient-to-br dark:from-zinc-100 dark:to-zinc-300 dark:text-zinc-900 dark:ring-white/10">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[10.5px] font-semibold text-white ring-1 ring-zinc-200 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-white/10">
             {userInitials}
           </div>
         </div>
+
         {!collapsed && (
           <>
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100">{userName}</p>
-              <p className="truncate text-[11px] font-medium text-zinc-400 dark:text-zinc-500">{planLabel} plan</p>
+              <p className="truncate text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100">
+                {userName}
+              </p>
+              <p className="truncate text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+                {planLabel} plan
+              </p>
             </div>
+
             <ChevronsUpDown
               className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-600 dark:text-zinc-600 dark:group-hover:text-zinc-300"
               strokeWidth={2}
@@ -481,6 +500,7 @@ function AccountMenu({
 }
 
 // ─── Sidebar Main ────────────────────────────────────────────────────────────
+
 function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -491,33 +511,50 @@ function DashboardSidebar() {
   const { signOut } = useClerk();
   const { plan } = useSubscription();
 
-  const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress.split("@")[0] || "User";
+  const userName =
+    user?.fullName ||
+    user?.primaryEmailAddress?.emailAddress.split("@")[0] ||
+    "User";
+
   const userInitials = userName
     .split(" ")
-    .map((n) => n[0])
+    .map((name) => name[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
-  const planLabel = (plan || "free").charAt(0).toUpperCase() + (plan || "free").slice(1);
+
+  const planValue = plan || "free";
+  const planLabel = planValue.charAt(0).toUpperCase() + planValue.slice(1);
 
   const handleLogout = async () => {
     await signOut();
     navigate("/login");
   };
 
-  const handleUpgrade = () => navigate("/billing");
-  const handleCommandSelect = (path: string) => navigate(path);
+  // 🛑 FIX: Redirect to /pricing instead of /billing
+  const handleUpgrade = () => navigate("/pricing");
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCommandOpen((o) => !o);
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen((current) => !current);
       }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+
+    document.addEventListener("keydown", handleShortcut);
+
+    return () => {
+      document.removeEventListener("keydown", handleShortcut);
+    };
   }, []);
+
+  const isSettingsActive =
+    location.pathname === "/account" ||
+    location.pathname === "/billing" ||
+    location.pathname === "/pricing" ||
+    location.pathname === "/team" ||
+    location.pathname === "/settings";
 
   return (
     <aside
@@ -526,37 +563,43 @@ function DashboardSidebar() {
         collapsed ? "w-[72px]" : "w-[252px]"
       )}
     >
-      {/* Subtle ambient gradient wash */}
-      <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-b from-transparent via-transparent to-transparent dark:from-white/[0.04]" />
-
-      {/* ── Header with Favicon + Perplexity-Style Action Icons ── */}
+      {/* Header */}
       <div
         className={cn(
           "relative flex h-14 shrink-0 items-center px-3.5",
           collapsed ? "justify-center px-0" : "justify-between"
         )}
       >
-<Link to="/" className="flex items-center gap-2.5 overflow-hidden rounded-md transition-opacity hover:opacity-90">
-  <img 
-    src="/brand-icon.png" 
-    alt="Brand Icon" 
-    className="h-6 w-6 shrink-0 object-contain" 
-  />
-</Link>
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2.5 overflow-hidden rounded-md transition-opacity hover:opacity-90"
+          aria-label="Go to dashboard"
+        >
+          <img
+            src="/brand-icon.png"
+            alt="RelunoOS"
+            className="h-6 w-6 shrink-0 object-contain"
+          />
+        </Link>
 
         {!collapsed && (
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => setCommandOpen(true)}
               className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
-              title="Search (⌘K)"
+              title="Search (Ctrl/⌘ K)"
+              aria-label="Search navigation"
             >
               <Search className="h-[16px] w-[16px]" strokeWidth={2} />
             </button>
+
             <button
+              type="button"
               onClick={() => setCollapsed(true)}
               className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
               title="Collapse sidebar"
+              aria-label="Collapse sidebar"
             >
               <PanelLeft className="h-[16px] w-[16px]" strokeWidth={2} />
             </button>
@@ -564,49 +607,60 @@ function DashboardSidebar() {
         )}
       </div>
 
-      {/* Expand button row when collapsed */}
+      {/* Expand button while sidebar is collapsed */}
       {collapsed && (
         <div className="flex justify-center pb-2">
           <button
+            type="button"
             onClick={() => setCollapsed(false)}
             className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
             title="Expand sidebar"
+            aria-label="Expand sidebar"
           >
-            <PanelLeft className="h-[16px] w-[16px]" strokeWidth={2} />
+            <PanelLeft className="h-[16px] w-[16px] rotate-180" strokeWidth={2} />
           </button>
         </div>
       )}
 
-      {/* ── Command Palette Modal Trigger ── */}
       <CommandPalette
         open={commandOpen}
         onClose={() => setCommandOpen(false)}
-        onSelect={handleCommandSelect}
+        onSelect={(path) => navigate(path)}
       />
 
-      {/* ── Nav Modules ── */}
+      {/* Module navigation */}
       <nav
         className="relative flex-1 space-y-0.5 overflow-y-auto px-3 pb-2 pt-1"
+        aria-label="Main navigation"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         <style>{`nav::-webkit-scrollbar { display: none; }`}</style>
+
         {NAV_ITEMS.map((item) => (
           <NavRow
             key={item.path}
             item={item}
-            isActive={location.pathname === item.path}
+            isActive={
+              location.pathname === item.path ||
+              (item.path === "/projects" &&
+                location.pathname.startsWith("/projects/")) ||
+              (item.path === "/proposals" &&
+                location.pathname.startsWith("/proposals/"))
+            }
             collapsed={collapsed}
             onClick={() => navigate(item.path)}
           />
         ))}
       </nav>
 
-      {/* ── Footer: Settings + Account ── */}
+      {/* Footer */}
       <div className="relative shrink-0 space-y-0.5 border-t border-zinc-100 p-3 dark:border-white/[0.06]">
-        <SettingsMenu
+        <SettingsRow
           collapsed={collapsed}
-          onExpandIfNeeded={() => setCollapsed(false)}
+          isActive={isSettingsActive}
+          onClick={() => navigate("/account")}
         />
+
         <AccountMenu
           collapsed={collapsed}
           userName={userName}
@@ -621,12 +675,14 @@ function DashboardSidebar() {
   );
 }
 
-// ─── App Shell ───────────────────────────────────────────────────────────────
+// ─── Optional App Shell ──────────────────────────────────────────────────────
+
 function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen w-full bg-zinc-100 p-4 dark:bg-black">
-      <div className="flex gap-4 w-full">
+      <div className="flex w-full gap-4">
         <DashboardSidebar />
+
         <div className="min-w-0 flex-1">
           <main className="min-h-[calc(100vh-2rem)] w-full overflow-y-auto rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950">
             {children}

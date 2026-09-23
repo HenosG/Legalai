@@ -50,7 +50,7 @@ const EXTRACTION_SCHEMA = {
 
 async function extractLeadData(rawMessage: string) {
   const response = await genAI.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.6-flash',
     contents: [{
       role: 'user',
       parts: [{
@@ -243,7 +243,7 @@ router.post('/:id/generate-proposal', requireAuth, async (req: any, res) => {
     if (!intake) return res.status(404).json({ error: 'Intake not found' });
 
     const response = await genAI.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.6-flash',
       contents: [{
         role: 'user',
         parts: [{

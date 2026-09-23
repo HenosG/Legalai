@@ -7,7 +7,7 @@ import {
   Search, Sparkles, ArrowUpRight, Users, FileText,
   FolderKanban, CreditCard, Activity, Clock, CheckCircle2,
   AlertCircle, ChevronRight, TrendingUp,
-  Briefcase, Receipt, Building2, KanbanSquare, BarChart3,
+  Briefcase, Receipt, Building2, KanbanSquare, BarChart3, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createApiClient } from "@/lib/api";
@@ -233,11 +233,9 @@ const AICommandBar = ({ onSubmit }: { onSubmit: (query: string) => void }) => {
     
     // Route based on intent
     if (intentClassification.type === 'external') {
-      // Redirect to AI Intake page
       window.location.href = `/ai-intake?query=${encodeURIComponent(value.trim())}&channel=command`;
     } else {
-      // Call AI Assistant API (internal query)
-      onSubmit(value.trim());
+      await onSubmit(value.trim());
     }
     
     setValue("");
@@ -293,17 +291,16 @@ const AICommandBar = ({ onSubmit }: { onSubmit: (query: string) => void }) => {
           </motion.button>
         </div>
 
-        {/* Intent Indicator (Optional, for debugging) */}
         {intent && (
           <div className="absolute right-14 top-1/2 transform -translate-y-1/2">
             <span
               className={cn(
                 "text-[10px] font-semibold px-2 py-0.5 rounded-full",
                 intent.type === 'external'
-                  ? 'bg-green-100 text-green-800'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   : intent.type === 'internal'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-gray-100 text-gray-800'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'bg-zinc-100 text-zinc-600 border border-zinc-200'
               )}
             >
               {intent.type === 'external' ? 'Lead' : intent.type === 'internal' ? 'Internal' : 'Uncertain'}
@@ -480,6 +477,7 @@ const Dashboard = () => {
   const { user, isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const [greeting, setGreeting] = useState("");
+  const [aiResult, setAiResult] = useState<any>(null);
 
 
   useEffect(() => {
@@ -530,7 +528,6 @@ const Dashboard = () => {
 
 
   const handleAIQuery = useCallback(async (query: string) => {
-    // Call AI Assistant API (internal query)
     try {
       const token = await getToken();
       const response = await fetch('/api/ai-assistant', {
@@ -546,11 +543,14 @@ const Dashboard = () => {
 
       const data = await response.json();
       
-      // Show AI Assistant response (for now, just alert - you'll build UI later)
-      alert(`AI Assistant: ${data.message}`);
+      // Prevent any legacy alert usage; map response straight to ui state
+      setAiResult(data);
     } catch (error) {
       console.error('AI Assistant error:', error);
-      alert('Failed to process query. Please try again.');
+      setAiResult({
+        type: 'ai_response',
+        message: 'Failed to process query. Please try again.'
+      });
     }
   }, [getToken]);
 
@@ -592,8 +592,89 @@ const Dashboard = () => {
             <span className="text-zinc-400">to accomplish today?</span>
           </motion.h1>
 
-
           <AICommandBar onSubmit={handleAIQuery} />
+
+          {/* ── Polished UI Result Card Drawer (Replaces Native Browser Alerts) ── */}
+          <AnimatePresence>
+            {aiResult && (
+              <motion.div 
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                className="w-full max-w-3xl mt-6 p-6 rounded-2xl border border-zinc-200/80 bg-white shadow-xl shadow-zinc-900/5 relative text-left"
+              >
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-zinc-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-zinc-900 text-white flex items-center justify-center">
+                      <Sparkles size={12} />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Reluno Assistant</span>
+                  </div>
+                  <button 
+                    onClick={() => setAiResult(null)}
+                    className="w-7 h-7 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 flex items-center justify-center transition-colors"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                <p className="text-[15px] font-medium text-zinc-800 mb-4">{aiResult.message || aiResult.data?.message}</p>
+
+                {/* Client List View */}
+                {aiResult.type === 'client_list' && aiResult.data?.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {aiResult.data.map((client: any) => (
+                      <div key={client.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100">
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-900">{client.name}</p>
+                          <p className="text-xs text-zinc-500">{client.email || 'No email provided'} • {client.company || 'Independent'}</p>
+                        </div>
+                        <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          {client.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Invoice Summary View */}
+                {aiResult.type === 'invoice_summary' && aiResult.data && (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-100 text-center">
+                      <p className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Total Revenue</p>
+                      <p className="text-xl font-serif font-bold text-zinc-900">${aiResult.data.total?.toLocaleString()}</p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100 text-center">
+                      <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Paid</p>
+                      <p className="text-xl font-serif font-bold text-emerald-700">${aiResult.data.paid?.toLocaleString()}</p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-100 text-center">
+                      <p className="text-[11px] text-amber-600 font-bold uppercase tracking-wider mb-1">Unpaid</p>
+                      <p className="text-xl font-serif font-bold text-amber-700">${aiResult.data.unpaid?.toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Project List View */}
+                {aiResult.type === 'project_list' && aiResult.data?.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {aiResult.data.map((proj: any) => (
+                      <div key={proj.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100">
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-900">{proj.name}</p>
+                          <p className="text-xs text-zinc-500">Budget: ${proj.budget?.toLocaleString()}</p>
+                        </div>
+                        <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                          {proj.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
 

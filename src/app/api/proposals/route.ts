@@ -28,14 +28,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, clientId, amount, content } = body;
+    const { title, clientId, amount, content, intakeId, scopeOfWork, timeline } = body;
+
+    // Default amount to 0 if not provided, ensuring USD representation
+    const parsedAmount = amount ? parseFloat(amount) : 0;
 
     const newProposal = await prisma.proposal.create({
       data: {
-        title,
+        title: title || "New Proposal",
         clientId,
-        amount: parseFloat(amount),
-        content,
+        amount: parsedAmount,
+        content: content || scopeOfWork || "",
         status: "DRAFT",
       },
     });
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
     await prisma.activityLog.create({
       data: {
         action: "CREATE_PROPOSAL",
-        description: `Created proposal "${title}" for amount $${amount}`,
+        description: `Created proposal "${newProposal.title}" for amount $${parsedAmount} USD`,
       },
     });
 
