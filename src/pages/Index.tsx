@@ -1,292 +1,689 @@
-// src/pages/Index.tsx
-// Design direction: Enterprise Minimalist — Anthropic/Scale AI DNA
-// Palette: Pure white + zinc-900 text + blue-600 accent. Zero gradients, zero glow.
-// Typography: DM Serif Display for display headings (loaded via @import), DM Sans for body
-// Spacing: Generous. Deliberate. Every section breathes.
-
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import {
+  ArrowRight,
+  BarChart3,
+  Check,
+  CheckCircle2,
+  ClipboardCheck,
+  FileText,
+  FolderKanban,
+  LayoutDashboard,
+  MessageSquareText,
+  Receipt,
+  Send,
+  Sparkles,
+  Users,
+  Zap,
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import {
-  ArrowRight, MessageSquare, FileText, BarChart3,
-  Bell, Calendar, Download, ScanLine, FolderKanban,
-  Shield, Zap, Clock, DollarSign, Check,
-  Brain, Globe, Lock, ChevronRight,
-} from "lucide-react";
 
-// ─── Feature grid data ────────────────────────────────────────────────────────
-const features = [
+const workflowSteps = [
   {
-    icon: MessageSquare,
-    label: "AI Query Engine",
-    desc: "Instant legal research across 40+ practice areas. Contract review, dispute analysis, tenant rights — answered in seconds.",
-    tier: "Core",
+    number: "01",
+    title: "Capture the inquiry",
+    description:
+      "Paste a client message, submit a lead, or bring in an inquiry from your existing workflow.",
+    icon: MessageSquareText,
   },
   {
-    icon: ScanLine,
-    label: "PDF risk analysis",
-    desc: "Upload any contract. Receive clause-level risk scores, party extraction, and plain-English summaries.",
-    tier: "Pro",
+    number: "02",
+    title: "Qualify the opportunity",
+    description:
+      "AI organizes requirements, budget context, timeline, and the next best action for review.",
+    icon: Sparkles,
   },
   {
+    number: "03",
+    title: "Send the proposal",
+    description:
+      "Turn qualified information into a professional proposal that you can review, edit, and send.",
+    icon: FileText,
+  },
+  {
+    number: "04",
+    title: "Deliver with clarity",
+    description:
+      "Move approved work into projects, milestones, tasks, and client-ready updates.",
     icon: FolderKanban,
-    label: "Case management",
-    desc: "Structured matter tracking with priority queues, status milestones, and case history archiving.",
-    tier: "Core",
+  },
+];
+
+const featureShowcases = [
+  {
+    eyebrow: "AI INTAKE",
+    title: "Turn scattered client messages into clear opportunities.",
+    description:
+      "RelunoOS turns unstructured inquiries into organized lead records with contact details, project requirements, budget context, timelines, and qualification signals.",
+    bullets: [
+      "Capture requirements from raw messages",
+      "Review AI-generated lead summaries",
+      "Accept qualified leads into your CRM",
+    ],
+    icon: Sparkles,
+    accent: "blue",
+    preview: "intake",
+  },
+  {
+    eyebrow: "SMART PROPOSALS",
+    title: "Go from qualified lead to polished proposal without starting over.",
+    description:
+      "Use the context already captured in AI Intake and CRM to create proposals with the right client, scope, budget, timeline, and next steps already in place.",
+    bullets: [
+      "Build proposal drafts from real client context",
+      "Edit scope, investment, and timeline before sending",
+      "Keep proposals connected to clients and projects",
+    ],
+    icon: FileText,
+    accent: "indigo",
+    preview: "proposal",
+  },
+  {
+    eyebrow: "PROJECT DELIVERY",
+    title: "Keep every client engagement moving forward.",
+    description:
+      "Organize active work through milestones, tasks, progress tracking, project health, and a clear delivery view for your team and clients.",
+    bullets: [
+      "Move approved work into structured projects",
+      "Track milestones, priorities, and due dates",
+      "Keep project context connected to the original client",
+    ],
+    icon: FolderKanban,
+    accent: "violet",
+    preview: "project",
+  },
+];
+
+const operatingSystemItems = [
+  {
+    icon: Sparkles,
+    title: "AI Intake",
+    description: "Structure leads before they become missed opportunities.",
+  },
+  {
+    icon: Users,
+    title: "CRM",
+    description: "Keep client relationships, notes, and history in one place.",
   },
   {
     icon: FileText,
-    label: "Document generation",
-    desc: "Produce NDAs, employment agreements, demand letters, and custom contracts from structured inputs.",
-    tier: "Core",
+    title: "Proposals",
+    description: "Create clear scopes and investment decisions faster.",
   },
   {
-    icon: BarChart3,
-    label: "Workload intelligence",
-    desc: "Resolution velocity metrics, practice-area breakdowns, and predictive caseload modeling.",
-    tier: "Pro",
+    icon: FolderKanban,
+    title: "Projects",
+    description: "Turn sold work into focused milestones and delivery.",
   },
   {
-    icon: Download,
-    label: "Professional export",
-    desc: "Court-ready PDFs and editable Word documents with consistent formatting and signature readiness.",
-    tier: "Pro",
+    icon: Receipt,
+    title: "Invoices",
+    description: "Connect delivery and billing as your finance workflow grows.",
   },
   {
-    icon: Bell,
-    label: "Smart reminders",
-    desc: "Deadline tracking and task management tied directly to active matters and calendar events.",
-    tier: "Starter",
-  },
-  {
-    icon: Calendar,
-    label: "Calendar sync",
-    desc: "Bidirectional Google Calendar integration. Hearings, filings, and client meetings — all in one view.",
-    tier: "Starter",
+    icon: LayoutDashboard,
+    title: "Workspace visibility",
+    description: "See the work, clients, and priorities that need attention.",
   },
 ];
 
-// ─── Infrastructure pillars ───────────────────────────────────────────────────
-const infrastructure = [
-  { icon: Shield,      label: "AES-256 encryption",   desc: "All data encrypted at rest and in transit." },
-  { icon: Globe,       label: "SOC 2 Type II",         desc: "Independently audited security controls."   },
-  { icon: Lock,        label: "Zero data retention",   desc: "Your documents are never used for training." },
-  { icon: Zap,         label: "99.9% uptime SLA",      desc: "Guaranteed availability for critical work."  },
-];
-
-// ─── Comparison ───────────────────────────────────────────────────────────────
-const comparisonRows = [
-  { label: "Cost",           traditional: "$300–$500/hr",  reluno: "From $29/mo"        },
-  { label: "Response time",  traditional: "Days to weeks",  reluno: "Under 2 seconds"    },
-  { label: "Availability",   traditional: "Business hours", reluno: "24/7"               },
-  { label: "Document review",traditional: "Billed hourly",  reluno: "Unlimited queries"  },
-  { label: "Transparency",   traditional: "Opaque billing", reluno: "Flat subscription"  },
-];
-
-// ─── Process steps ────────────────────────────────────────────────────────────
-const steps = [
-  { n: "01", label: "Describe your matter",   desc: "Tell Reluno about your legal situation in plain language. No legal training required." },
-  { n: "02", label: "Receive analysis",        desc: "The AI returns structured guidance, relevant precedents, and flagged risk areas instantly." },
-  { n: "03", label: "Generate documents",      desc: "Produce a court-ready document or formal letter directly from the analysis." },
-  { n: "04", label: "Track and resolve",       desc: "Log the matter in Case Vault and monitor progress through to resolution." },
-];
-
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-const testimonials = [
+const plans = [
   {
-    quote: "Reluno replaced our $400/hr document review process. Our team now spends time on strategy, not paperwork.",
-    name: "Sarah K.",
-    title: "Managing Partner",
-    initials: "SK",
+    name: "Free",
+    price: "$0",
+    period: "forever",
+    description: "Explore the RelunoOS workflow and organize your essentials.",
+    features: [
+      "AI Intake workspace",
+      "Client CRM essentials",
+      "Proposal drafting",
+      "Project workspace",
+    ],
+    cta: "Start free",
+    href: "/signup",
+    highlighted: false,
   },
   {
-    quote: "The PDF analysis caught three unfavorable indemnification clauses our team had missed. It paid for itself on day one.",
-    name: "Marcus T.",
-    title: "General Counsel",
-    initials: "MT",
+    name: "Starter",
+    price: "Coming soon",
+    period: "for solo operators",
+    description: "Built for freelancers who want a more connected client workflow.",
+    features: [
+      "Everything in Free",
+      "Higher workspace limits",
+      "Advanced proposal workflows",
+      "Project delivery tools",
+      "Priority product access",
+    ],
+    cta: "View pricing",
+    href: "/pricing",
+    highlighted: true,
   },
   {
-    quote: "As a solo practitioner, I finally have the same intelligence infrastructure as a full firm. The case tracking alone is transformative.",
-    name: "Priya N.",
-    title: "Solo Practitioner, Family Law",
-    initials: "PN",
+    name: "Pro",
+    price: "Coming soon",
+    period: "for growing agencies",
+    description: "More control, visibility, and collaboration for client teams.",
+    features: [
+      "Everything in Starter",
+      "Team workflow controls",
+      "Client portal access",
+      "Advanced workspace settings",
+      "Priority support",
+    ],
+    cta: "View pricing",
+    href: "/pricing",
+    highlighted: false,
   },
 ];
 
-// ══════════════════════════════════════════════════════════════════════════════
-export default function Index() {
-  const navigate = useNavigate();
-  const [mounted, setMounted] = useState(false);
+function ProductPreview({
+  type,
+}: {
+  type: "intake" | "proposal" | "project";
+}) {
+  if (type === "intake") {
+    return (
+      <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-2xl shadow-blue-950/10">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-blue-50 p-2 text-blue-600">
+              <Sparkles size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-zinc-900">AI Intake</p>
+              <p className="text-[10px] text-zinc-500">New opportunity review</p>
+            </div>
+          </div>
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-700 border border-amber-200">
+            Review
+          </span>
+        </div>
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+            Incoming inquiry
+          </p>
+          <p className="mt-2 text-xs leading-5 text-zinc-700">
+            “We need help with a new website, lead forms, and a client dashboard.
+            Our target launch is this fall.”
+          </p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+              Project type
+            </p>
+            <p className="mt-1 text-xs font-semibold text-zinc-900">Website build</p>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+              Timeline
+            </p>
+            <p className="mt-1 text-xs font-semibold text-zinc-900">This fall</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+          <span className="text-[11px] font-semibold text-emerald-800">
+            Lead qualification ready
+          </span>
+          <CheckCircle2 size={15} className="text-emerald-600" />
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "proposal") {
+    return (
+      <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-2xl shadow-indigo-950/10">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-indigo-50 p-2 text-indigo-600">
+              <FileText size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-zinc-900">Project Proposal</p>
+              <p className="text-[10px] text-zinc-500">Draft · Apex Studio</p>
+            </div>
+          </div>
+          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-zinc-600 border border-zinc-200">
+            Draft
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+            Scope of work
+          </p>
+          <div className="mt-3 space-y-2.5">
+            {[
+              "Discovery and technical planning",
+              "Responsive website design",
+              "Lead capture and client portal",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-2 text-[11px] text-zinc-700">
+                <Check size={13} className="shrink-0 text-indigo-600" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-end justify-between rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+              Total investment
+            </p>
+            <p className="mt-1 text-xl font-bold tracking-tight text-zinc-900">$8,500 CAD</p>
+          </div>
+          <span className="rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white shadow-sm">
+            Review & send
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {/* Google Fonts — DM Serif Display + DM Sans */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+    <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-2xl shadow-violet-950/10">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-violet-50 p-2 text-violet-600">
+            <FolderKanban size={16} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-900">Website Redesign</p>
+            <p className="text-[10px] text-zinc-500">Apex Logistics</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-200">
+          On track
+        </span>
+      </div>
 
-        .font-display { font-family: 'DM Serif Display', serif; }
-        .font-body    { font-family: 'DM Sans', sans-serif; }
+      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+            Project progress
+          </p>
+          <p className="text-xs font-bold text-zinc-900">68%</p>
+        </div>
 
-        * { font-family: 'DM Sans', sans-serif; }
-        h1, h2, h3, .display { font-family: 'DM Serif Display', serif; }
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-200">
+          <div className="h-full w-[68%] rounded-full bg-violet-600" />
+        </div>
 
-        .fade-up {
-          opacity: 0;
-          transform: translateY(16px);
-          transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-        .fade-up.visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to   { opacity: 1; transform: translateY(0);    }
-        }
-        .hero-animate {
-          animation: fadeSlideUp 0.7s ease forwards;
-          opacity: 0;
-        }
-        .hero-animate:nth-child(1) { animation-delay: 0.05s; }
-        .hero-animate:nth-child(2) { animation-delay: 0.15s; }
-        .hero-animate:nth-child(3) { animation-delay: 0.25s; }
-        .hero-animate:nth-child(4) { animation-delay: 0.35s; }
-        .hero-animate:nth-child(5) { animation-delay: 0.45s; }
-      `}</style>
-
-      <div className="min-h-screen bg-white text-zinc-900 overflow-x-hidden">
-        <Navbar />
-
-        {/* ══════════════════════════════════════════════════════════════════
-            HERO
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="pt-32 pb-28 px-6 border-b border-zinc-100">
-          <div className="max-w-7xl mx-auto">
-
-            {/* Eyebrow */}
-            <div className="hero-animate inline-flex items-center gap-2 mb-10">
-              <div className="h-px w-8 bg-blue-600" />
-              <span className="text-xs font-semibold text-blue-600 uppercase tracking-[0.25em]">
-                Legal AI Platform
+        <div className="mt-5 space-y-3">
+          {[
+            { label: "Discovery", complete: true },
+            { label: "Design direction", complete: true },
+            { label: "Development", complete: false },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-[11px] text-zinc-700">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    item.complete ? "bg-emerald-500" : "bg-violet-400"
+                  }`}
+                />
+                {item.label}
+              </span>
+              <span className="text-[10px] text-zinc-500">
+                {item.complete ? "Complete" : "In progress"}
               </span>
             </div>
+          ))}
+        </div>
+      </div>
 
-            {/* Headline */}
-            <h1 className="hero-animate font-display text-[clamp(3rem,7vw,6rem)] leading-[1.02] tracking-tight text-zinc-900 mb-8 max-w-7xl">
-              The operating system for modern legal work.
-            </h1>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+            Open tasks
+          </p>
+          <p className="mt-1 text-lg font-bold text-zinc-900">7</p>
+        </div>
 
-            {/* Sub */}
-            <p className="hero-animate text-lg text-zinc-500 leading-relaxed max-w-2xl mb-12 font-light">
-              Reluno integrates advanced legal synthesis and document intelligence into a single, secure environment — giving small businesses and individuals the same capabilities as a Fortune 500 legal team.
-            </p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+            Target date
+          </p>
+          <p className="mt-1 text-xs font-semibold text-zinc-900">Oct 28</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            {/* CTAs */}
-            <div className="hero-animate flex flex-col sm:flex-row items-start gap-3 mb-16">
-              <button
-                onClick={() => navigate("/signup")}
-                className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors duration-200"
-              >
-                Get started free
-                <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform duration-200" />
-              </button>
-              <button
-                onClick={() => navigate("/pricing")}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-md border border-zinc-200 text-zinc-700 text-sm font-semibold hover:border-zinc-400 hover:bg-zinc-50 transition-all duration-200"
-              >
-                View pricing
-                <ChevronRight size={14} className="ml-1" />
-              </button>
-            </div>
+export default function Index() {
+  return (
+    <div className="min-h-screen overflow-x-hidden bg-[#FAFAFA] text-zinc-900">
+      <style>{`
+        @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap");
 
-            {/* Trust strip */}
-            <div className="hero-animate flex flex-wrap items-center gap-x-8 gap-y-3">
-              {[
-                "No credit card required",
-                "SOC 2 compliant",
-                "Cancel anytime",
-                "AES-256 encryption",
-              ].map((item) => (
-                <span key={item} className="flex items-center gap-2 text-xs text-zinc-400 font-medium">
-                  <Check size={13} className="text-blue-600 shrink-0" />
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
+        .font-display {
+          font-family: "DM Serif Display", serif;
+        }
 
-        {/* ══════════════════════════════════════════════════════════════════
-            INFRASTRUCTURE & SECURITY
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="py-16 px-6 bg-zinc-50 border-b border-zinc-100">
-          <div className="max-w-7xl mx-auto">
-            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-400 mb-10">
-              Infrastructure & security
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {infrastructure.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div key={item.label} className="flex flex-col gap-3">
-                    <div className="w-9 h-9 rounded-md border border-zinc-200 bg-white flex items-center justify-center">
-                      <Icon size={16} className="text-blue-600" />
+        .font-body {
+          font-family: "DM Sans", sans-serif;
+        }
+
+        * {
+          font-family: "DM Sans", sans-serif;
+        }
+
+        .hero-grid {
+          background-image:
+            linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+          background-size: 42px 42px;
+        }
+
+        .hero-stripes {
+          background-image:
+            repeating-linear-gradient(
+              -45deg,
+              rgba(255, 255, 255, 0.035) 0,
+              rgba(255, 255, 255, 0.035) 1px,
+              transparent 1px,
+              transparent 15px
+            );
+        }
+
+        @keyframes rise-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .rise-in {
+          animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .rise-in-delay-1 {
+          animation-delay: 0.08s;
+        }
+
+        .rise-in-delay-2 {
+          animation-delay: 0.16s;
+        }
+
+        .rise-in-delay-3 {
+          animation-delay: 0.24s;
+        }
+      `}</style>
+
+      <Navbar />
+
+      <main>
+        {/* Hero Section */}
+<section className="relative isolate overflow-hidden bg-[#063ee2] pb-24 pt-36 text-white sm:pb-32 sm:pt-44 border-b border-blue-700">
+  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_50%)]" />
+  <div className="absolute left-1/2 top-[-100px] h-[400px] w-[700px] -translate-x-1/2 rounded-full bg-blue-500/30 blur-3xl pointer-events-none" />
+
+  <div className="relative mx-auto max-w-7xl px-6 sm:px-10">
+    <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+      <div className="max-w-3xl">
+        <div className="rise-in inline-flex items-center rounded-lg border border-blue-400/40 bg-blue-600/60 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100 backdrop-blur-md">
+          Built for agencies and freelancers
+        </div>
+
+                <h1 className="rise-in rise-in-delay-1 mt-7 text-5xl font-bold leading-[0.98] tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
+                  Run your client workflow on autopilot.
+                </h1>
+
+                <p className="rise-in rise-in-delay-2 mt-7 max-w-2xl text-base leading-7 text-blue-100 sm:text-lg">
+                  RelunoOS turns scattered client work into one connected system—
+                  from the first inquiry to qualified lead, proposal, project,
+                  delivery, and payment.
+                </p>
+
+                <div className="rise-in rise-in-delay-3 mt-9 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                  <Link
+                    to="/signup"
+                    className="group inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#063ee2] shadow-[0_12px_30px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5 hover:bg-blue-50"
+                  >
+                    Start free
+                    <ArrowRight
+                      size={16}
+                      className="transition-transform group-hover:translate-x-1"
+                    />
+                  </Link>
+
+                  <Link
+                    to="/platform"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
+                  >
+                    See how it works
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
+
+                <div className="rise-in rise-in-delay-3 mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-blue-100/90">
+  <span className="inline-flex items-center gap-2">
+    <Check size={14} className="text-blue-200" />
+    No credit card required
+  </span>
+  <span className="inline-flex items-center gap-2">
+    <Check size={14} className="text-blue-200" />
+    You stay in control of every client action
+  </span>
+</div>
+              </div>
+
+              <div className="rise-in rise-in-delay-2 relative mx-auto w-full max-w-xl lg:max-w-none">
+                <div className="absolute -left-6 top-14 hidden rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-xl backdrop-blur-md xl:block">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-blue-100/65">
+                    Lead score
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-white">High fit</p>
+                </div>
+
+                <div className="absolute -bottom-5 -right-4 hidden rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-xl backdrop-blur-md xl:block">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-blue-100/65">
+                    Workflow
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-white">
+                    Inquiry → Project
+                  </p>
+                </div>
+
+                <div className="rounded-[2rem] border border-white/15 bg-gradient-to-br from-white/15 to-white/[0.04] p-3 shadow-[0_30px_70px_rgba(0,0,0,0.25)] backdrop-blur-sm">
+                  <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/20 p-3">
+                    <div className="mb-3 flex items-center gap-1.5 px-2">
+                      <span className="h-2 w-2 rounded-full bg-red-300/80" />
+                      <span className="h-2 w-2 rounded-full bg-amber-200/80" />
+                      <span className="h-2 w-2 rounded-full bg-emerald-200/80" />
+                      <span className="ml-2 text-[10px] font-medium text-blue-100/60">
+                        RelunoOS workspace
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900 mb-0.5">{item.label}</p>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
-                    </div>
+
+                    <ProductPreview type="intake" />
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            FEATURE GRID
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="py-28 px-6 border-b border-zinc-100">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-16">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-blue-600 mb-5">
-                Platform capabilities
+        {/* Agency operating system strip */}
+        <section className="border-b border-zinc-100 bg-white py-7">
+          <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 px-6 sm:px-10 lg:flex-row lg:justify-between">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 lg:text-left">
+              One connected workflow for client work
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs font-semibold text-zinc-600">
+              {["Inquiry", "AI Intake", "CRM", "Proposal", "Project", "Payment"].map(
+                (step, index, items) => (
+                  <div key={step} className="flex items-center gap-3">
+                    <span>{step}</span>
+                    {index !== items.length - 1 && (
+                      <ArrowRight size={13} className="text-blue-600" />
+                    )}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Problem / operating system */}
+        <section className="border-b border-zinc-100 bg-[#FAFAFA] px-6 py-24 sm:px-10 sm:py-32">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
+                  The operating layer
+                </p>
+
+                <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
+                  Your client workflow should not live across six disconnected tools.
+                </h2>
+              </div>
+
+              <p className="max-w-2xl text-base leading-7 text-zinc-500">
+                RelunoOS brings lead capture, client records, proposals, project
+                delivery, and operational visibility into one workspace—so your
+                team spends less time copying information and more time doing
+                meaningful client work.
               </p>
-              <h2 className="font-display text-[clamp(2.2rem,5vw,4rem)] leading-tight tracking-tight text-zinc-900 max-w-2xl">
-                Everything your practice needs, unified.
-              </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-100 border border-zinc-100 rounded-md overflow-hidden">
-              {features.map((feat) => {
-                const Icon = feat.icon;
-                const tierColor =
-                  feat.tier === "Pro"     ? "text-blue-600 bg-blue-50"  :
-                  feat.tier === "Starter" ? "text-emerald-600 bg-emerald-50" :
-                  "text-zinc-500 bg-zinc-100";
+            <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-200 sm:grid-cols-2 lg:grid-cols-3">
+              {operatingSystemItems.map((item) => {
+                const Icon = item.icon;
 
                 return (
                   <div
-                    key={feat.label}
-                    className="bg-white p-7 flex flex-col gap-5 hover:bg-zinc-50 transition-colors duration-150 group"
+                    key={item.title}
+                    className="group bg-white p-7 transition-colors hover:bg-blue-50/40"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="w-9 h-9 rounded-md border border-zinc-200 flex items-center justify-center group-hover:border-blue-200 transition-colors">
-                        <Icon size={16} className="text-zinc-500 group-hover:text-blue-600 transition-colors" />
-                      </div>
-                      <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm ${tierColor}`}>
-                        {feat.tier}
-                      </span>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-600 transition-colors group-hover:border-blue-200 group-hover:bg-blue-50 group-hover:text-[#063ee2]">
+                      <Icon size={18} />
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900 mb-1.5">{feat.label}</p>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{feat.desc}</p>
+
+                    <h3 className="mt-6 text-base font-bold text-zinc-900">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-2 max-w-xs text-sm leading-6 text-zinc-500">
+                      {item.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Feature showcases */}
+        <section className="bg-white px-6 py-24 sm:px-10 sm:py-32">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
+                Built around the way agencies work
+              </p>
+
+              <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
+                From the first message to finished client work.
+              </h2>
+            </div>
+
+            <div className="mt-20 space-y-24 sm:space-y-32">
+              {featureShowcases.map((feature, index) => {
+                const Icon = feature.icon;
+                const reverse = index % 2 !== 0;
+
+                const accentClasses =
+                  feature.accent === "blue"
+                    ? {
+                        badge: "bg-blue-50 text-blue-700 border-blue-100",
+                        icon: "bg-blue-600",
+                        visual: "from-[#063ee2] via-blue-700 to-indigo-900",
+                      }
+                    : feature.accent === "indigo"
+                    ? {
+                        badge: "bg-indigo-50 text-indigo-700 border-indigo-100",
+                        icon: "bg-indigo-600",
+                        visual: "from-indigo-700 via-indigo-800 to-slate-900",
+                      }
+                    : {
+                        badge: "bg-violet-50 text-violet-700 border-violet-100",
+                        icon: "bg-violet-600",
+                        visual: "from-violet-700 via-violet-800 to-indigo-950",
+                      };
+
+                return (
+                  <div
+                    key={feature.title}
+                    className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20"
+                  >
+                    <div className={reverse ? "lg:order-2" : ""}>
+                      <div
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] ${accentClasses.badge}`}
+                      >
+                        <Icon size={12} />
+                        {feature.eyebrow}
+                      </div>
+
+                      <h3 className="mt-6 text-3xl font-bold leading-[1.05] tracking-[-0.04em] text-zinc-900 sm:text-4xl">
+                        {feature.title}
+                      </h3>
+
+                      <p className="mt-5 max-w-xl text-base leading-7 text-zinc-500">
+                        {feature.description}
+                      </p>
+
+                      <ul className="mt-7 space-y-3">
+                        {feature.bullets.map((bullet) => (
+                          <li
+                            key={bullet}
+                            className="flex items-start gap-3 text-sm leading-6 text-zinc-700"
+                          >
+                            <span
+                              className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-white ${accentClasses.icon}`}
+                            >
+                              <Check size={11} strokeWidth={3} />
+                            </span>
+                            {bullet}
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Link
+                        to={
+                          feature.preview === "intake"
+                            ? "/platform/ai-intake"
+                            : feature.preview === "proposal"
+                            ? "/platform/proposals"
+                            : "/platform/projects"
+                        }
+                        className="group mt-8 inline-flex items-center gap-2 text-sm font-bold text-[#063ee2] transition-colors hover:text-blue-800"
+                      >
+                        Explore {feature.eyebrow.toLowerCase()}
+                        <ArrowRight
+                          size={15}
+                          className="transition-transform group-hover:translate-x-1"
+                        />
+                      </Link>
+                    </div>
+
+                    <div
+                      className={`rounded-[2rem] bg-gradient-to-br p-6 sm:p-9 ${accentClasses.visual} ${
+                        reverse ? "lg:order-1" : ""
+                      }`}
+                    >
+                      <ProductPreview type={feature.preview as "intake" | "proposal" | "project"} />
                     </div>
                   </div>
                 );
@@ -295,273 +692,117 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            HOW IT WORKS
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="py-28 px-6 bg-zinc-50 border-b border-zinc-100">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-16">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-blue-600 mb-5">
+        {/* Workflow steps */}
+        <section className="border-y border-zinc-100 bg-[#F5F7FF] px-6 py-24 sm:px-10 sm:py-32">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
                 How it works
               </p>
-              <h2 className="font-display text-[clamp(2.2rem,5vw,4rem)] leading-tight tracking-tight text-zinc-900 max-w-xl">
-                From question to resolution in minutes.
+
+              <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
+                Move from first inquiry to active project with less friction.
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-4 gap-8">
-              {steps.map((step, i) => (
-                <div key={step.n} className="relative">
-                  {/* Connector line */}
-                  {i < steps.length - 1 && (
-                    <div className="hidden md:block absolute top-5 left-[calc(100%_-_16px)] w-full h-px bg-zinc-200 z-0" />
-                  )}
-                  <div className="relative z-10">
-                    <div className="w-10 h-10 rounded-md border border-zinc-200 bg-white flex items-center justify-center mb-5">
-                      <span className="text-[11px] font-bold text-blue-600 font-mono">{step.n}</span>
-                    </div>
-                    <p className="text-sm font-semibold text-zinc-900 mb-2">{step.label}</p>
-                    <p className="text-xs text-zinc-400 leading-relaxed">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+            <div className="mt-16 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {workflowSteps.map((step) => {
+                const Icon = step.icon;
 
-        {/* ══════════════════════════════════════════════════════════════════
-            COMPARISON TABLE
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="py-28 px-6 border-b border-zinc-100">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-16 items-start">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-blue-600 mb-5">
-                  The difference
-                </p>
-                <h2 className="font-display text-[clamp(2rem,4.5vw,3.5rem)] leading-tight tracking-tight text-zinc-900 mb-6">
-                  Same legal power. A fraction of the cost.
-                </h2>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  Traditional legal counsel is essential for complex litigation. But the vast majority of legal work — contract review, document drafting, basic research — doesn't require a $400/hr attorney. Reluno handles that layer.
-                </p>
-              </div>
-
-              <div className="border border-zinc-200 rounded-md overflow-hidden">
-  {/* The Header Row container */}
-  <div className="grid grid-cols-3 bg-zinc-50 border-b border-zinc-200">
-    {/* Column 1: Feature */}
-    <div className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-      Feature
-    </div>
-    {/* Column 2: Traditional (MUST be outside the div above) */}
-    <div className="px-5 py-3.5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-l border-zinc-200">
-      Traditional
-    </div>
-    {/* Column 3: Reluno */}
-    <div className="px-5 py-3.5 text-[10px] font-bold text-blue-600 uppercase tracking-widest border-l border-zinc-200">
-      Reluno
-    </div>
-  </div> {/* This closes the header row */}
-
-{/* The Data Rows */}
-{comparisonRows.map((row, i) => (
-            <div
-              key={row.label}
-              className={`grid grid-cols-3 border-b border-zinc-100 last:border-0 ${
-                i % 2 === 0 ? "bg-white" : "bg-zinc-50/60"
-              }`}
-            >
-              <div className="px-5 py-4 text-xs font-medium text-zinc-500">{row.label}</div>
-              <div className="px-5 py-4 text-xs text-zinc-400 border-l border-zinc-100">{row.traditional}</div>
-              <div className="px-5 py-4 text-xs font-semibold text-blue-600 border-l border-zinc-100">{row.reluno}</div>
-            </div>
-          ))}
-        </div> {/* 1. Closes the overflow-hidden border box */}
-      </div> {/* 2. Closes the max-w-7xl column container */}
-    </div> {/* 3. Closes the inner div of the comparison section */}
-  </section> {/* 4. Closes the Comparison Section */}
-
-  {/* ══════════════════════════════════════════════════════════════════
-      TESTIMONIALS
-  ══════════════════════════════════════════════════════════════════ */}
-  <section className="py-28 px-6 bg-zinc-50 border-b border-zinc-100">
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-16">
-        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-blue-600 mb-5">
-          From practitioners
-        </p>
-        <h2 className="font-display text-[clamp(2rem,4.5vw,3.5rem)] leading-tight tracking-tight text-zinc-900">
-          Used by professionals who demand precision.
-        </h2>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-6">
-        {testimonials.map((t) => (
-          <div
-            key={t.name}
-            className="bg-white border border-zinc-200 rounded-md p-8 flex flex-col justify-between gap-8 hover:border-blue-200 transition-colors duration-200"
-          >
-            <p className="text-sm text-zinc-600 leading-relaxed">
-              "{t.quote}"
-            </p>
-            <div className="flex items-center gap-3 pt-5 border-t border-zinc-100">
-              <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 shrink-0">
-                {t.initials}
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-zinc-900">{t.name}</p>
-                <p className="text-[10px] text-zinc-400">{t.title}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-        {/* ══════════════════════════════════════════════════════════════════
-            PRICING TEASER
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="py-28 px-6 border-b border-zinc-100">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-14">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-blue-600 mb-5">
-                Simple pricing
-              </p>
-              <h2 className="font-display text-[clamp(2rem,4.5vw,3.5rem)] leading-tight tracking-tight text-zinc-900 mb-4">
-                Start free. Scale when you need to.
-              </h2>
-              <p className="text-sm text-zinc-500 max-w-xl leading-relaxed">
-                No contracts. No hidden fees. Cancel any time. Every plan includes AES-256 encryption and full platform access.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4 mb-8">
-              {[
-                {
-                  name: "Free",
-                  price: "$0",
-                  period: "forever",
-                  desc: "Explore AI-powered legal guidance at no cost.",
-                  features: ["5 AI queries/month", "Basic document templates", "Case tracking", "Community support"],
-                  cta: "Get started",
-                  highlight: false,
-                },
-                {
-                  name: "Starter",
-                  price: "$29",
-                  period: "per month",
-                  desc: "Everything an individual needs to manage legal matters.",
-                  features: ["Unlimited AI queries", "Advanced document generator", "Smart reminders", "Calendar integration", "5 GB document vault"],
-                  cta: "Get Starter",
-                  highlight: true,
-                },
-                {
-                  name: "Pro",
-                  price: "$99",
-                  period: "per month",
-                  desc: "Maximum power for small firms and serious practitioners.",
-                  features: ["Everything in Starter", "PDF risk analysis", "Professional export suite", "Advanced analytics", "24/7 priority support"],
-                  cta: "Get Pro",
-                  highlight: false,
-                },
-              ].map((plan) => (
-                <div
-                  key={plan.name}
-                  className={`rounded-md p-8 flex flex-col gap-7 ${
-                    plan.highlight
-                      ? "border-2 border-blue-600 bg-blue-50/30"
-                      : "border border-zinc-200 bg-white"
-                  }`}
-                >
-                  <div>
-                    {plan.highlight && (
-                      <span className="inline-block text-[9px] font-bold uppercase tracking-widest text-blue-600 bg-blue-100 px-2 py-0.5 rounded-sm mb-3">
-                        Most popular
-                      </span>
-                    )}
-                    <p className="text-sm font-semibold text-zinc-900 mb-1">{plan.name}</p>
-                    <div className="flex items-baseline gap-1 mb-2">
-                      <span className="text-3xl font-bold text-zinc-900 tracking-tight">{plan.price}</span>
-                      <span className="text-xs text-zinc-400">{plan.period}</span>
-                    </div>
-                    <p className="text-xs text-zinc-500 leading-relaxed">{plan.desc}</p>
-                  </div>
-
-                  <ul className="flex flex-col gap-2.5 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-xs text-zinc-600">
-                        <Check size={13} className="text-blue-600 shrink-0 mt-0.5" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <button
-                    onClick={() => navigate("/pricing")}
-                    className={`w-full py-3 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors duration-200 ${
-                      plan.highlight
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : "border border-zinc-200 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50"
-                    }`}
+                return (
+                  <div
+                    key={step.number}
+                    className="relative rounded-2xl border border-blue-100/80 bg-white p-6 shadow-[0_10px_30px_rgba(6,62,226,0.05)]"
                   >
-                    {plan.cta}
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold tracking-[0.18em] text-[#063ee2]">
+                        {step.number}
+                      </span>
 
-            <p className="text-xs text-zinc-400 text-center">
-              All plans billed monthly or yearly (save 17%).{" "}
-              <button onClick={() => navigate("/pricing")} className="text-blue-600 hover:underline">
-                See full feature breakdown →
-              </button>
-            </p>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#063ee2]">
+                        <Icon size={17} />
+                      </div>
+                    </div>
+
+                    <h3 className="mt-7 text-base font-bold text-zinc-900">
+                      {step.title}
+                    </h3>
+
+                    <p className="mt-3 text-sm leading-6 text-zinc-500">
+                      {step.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            CTA
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="py-28 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="border border-zinc-200 rounded-md p-16 text-center bg-zinc-50">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-blue-600 mb-6">
-                Get started today
+        {/* Human control / comparison */}
+        <section className="border-b border-zinc-100 bg-white px-6 py-24 sm:px-10 sm:py-32">
+          <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
+                Built for trust
               </p>
-              <h2 className="font-display text-[clamp(2.2rem,5vw,4rem)] leading-tight tracking-tight text-zinc-900 mb-5 max-w-2xl mx-auto">
-                Legal intelligence, accessible to everyone.
+
+              <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
+                AI helps with the first draft. You stay in control.
               </h2>
-              <p className="text-sm text-zinc-500 max-w-xl mx-auto leading-relaxed mb-10">
-                Join thousands of small business owners, entrepreneurs, and individuals who use Reluno to navigate the legal landscape with confidence — and without a retainer.
+
+              <p className="mt-6 max-w-xl text-base leading-7 text-zinc-500">
+                RelunoOS is not built to replace your client relationships. It
+                helps organize the operational work behind them, while you review,
+                edit, approve, and control every important client-facing action.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  onClick={() => navigate("/signup")}
-                  className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors duration-200"
-                >
-                  Create a free account
-                  <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform duration-200" />
-                </button>
-                <button
-                  onClick={() => navigate("/contact")}
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-md border border-zinc-200 text-zinc-700 text-sm font-semibold hover:border-zinc-400 hover:bg-white transition-all duration-200"
-                >
-                  Book a demo
-                </button>
+
+              <Link
+                to="/security"
+                className="group mt-8 inline-flex items-center gap-2 text-sm font-bold text-[#063ee2] transition-colors hover:text-blue-800"
+              >
+                Learn about security and privacy
+                <ArrowRight
+                  size={15}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </Link>
+            </div>
+
+            <div className="overflow-hidden rounded-3xl border border-zinc-200">
+              <div className="grid grid-cols-[1.1fr_1fr_1fr] border-b border-zinc-200 bg-zinc-50">
+                <div className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                  Workflow
+                </div>
+                <div className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                  Without RelunoOS
+                </div>
+                <div className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[#063ee2]">
+                  With RelunoOS
+                </div>
+              </div>
+              <div className="divide-y divide-zinc-200 bg-white text-xs text-zinc-700">
+                <div className="grid grid-cols-[1.1fr_1fr_1fr] px-5 py-3.5">
+                  <span className="font-semibold text-zinc-900">Lead Capture</span>
+                  <span className="text-zinc-500">Scattered across email, chat, DMs</span>
+                  <span className="font-medium text-blue-600">Unified AI intake & CRM</span>
+                </div>
+                <div className="grid grid-cols-[1.1fr_1fr_1fr] px-5 py-3.5">
+                  <span className="font-semibold text-zinc-900">Proposals</span>
+                  <span className="text-zinc-500">Starting from scratch every time</span>
+                  <span className="font-medium text-blue-600">Pre-filled from lead context</span>
+                </div>
+                <div className="grid grid-cols-[1.1fr_1fr_1fr] px-5 py-3.5">
+                  <span className="font-semibold text-zinc-900">Projects</span>
+                  <span className="text-zinc-500">Manual tracking in spreadsheets</span>
+                  <span className="font-medium text-blue-600">Structured tasks & milestones</span>
+                </div>
               </div>
             </div>
-
-            {/* Legal disclaimer */}
-            <p className="mt-10 text-center text-[10px] text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-              Reluno provides general legal information and AI-assisted document analysis. This does not constitute legal advice. For specific legal matters, consult a qualified attorney licensed in your jurisdiction.
-            </p>
           </div>
         </section>
+      </main>
 
-        <Footer />
-      </div>
-    </>
+      <Footer />
+    </div>
   );
 }

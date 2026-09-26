@@ -1,25 +1,25 @@
 import { Link } from "react-router-dom";
-import { Cpu, Twitter, Linkedin } from "lucide-react";
+import { Linkedin, Twitter } from "lucide-react";
 
 const footerLinks = {
-  products: {
-    title: "Products",
+  platform: {
+    title: "Platform",
     links: [
-      { name: "Legal Question AI", href: "/legalquestionai" },
-      { name: "Document Generator", href: "/documentgenerator" },
-      { name: "Claim Tracker", href: "/claimtracker" },
-      { name: "Workflow Automation", href: "/workflowautomation" },
-      { name: "Analytics", href: "/analytics" },
+      { name: "AI Intake", href: "/platform/ai-intake" },
+      { name: "CRM", href: "/platform/crm" },
+      { name: "Proposals", href: "/platform/proposals" },
+      { name: "Projects", href: "/platform/projects" },
+      { name: "Client Portal", href: "/platform/client-portal" },
     ],
   },
-  practiceTypes: {
-    title: "Practice Types",
+  solutions: {
+    title: "Solutions",
     links: [
-      { name: "Personal Injury", href: "/personalinjury" },
-      { name: "Family Law", href: "/familylaw" },
-      { name: "Contracts", href: "/contracts" },
-      { name: "Landlord-Tenant", href: "/landlordtenant" },
-      { name: "Small Claims", href: "/smallclaims" },
+      { name: "Agencies", href: "/solutions/agencies" },
+      { name: "Freelancers", href: "/solutions/freelancers" },
+      { name: "Creative Teams", href: "/solutions/creative-agencies" },
+      { name: "Marketing Agencies", href: "/solutions/marketing-agencies" },
+      { name: "Development Agencies", href: "/solutions/development-agencies" },
     ],
   },
   resources: {
@@ -28,71 +28,69 @@ const footerLinks = {
       { name: "Blog", href: "/blog" },
       { name: "Guides", href: "/guides" },
       { name: "Templates", href: "/templates" },
-      { name: "Webinars", href: "/webinars" },
-      { name: "Community", href: "/community" },
+      { name: "Changelog", href: "/changelog" },
+      { name: "Help Center", href: "/support" },
     ],
   },
   company: {
     title: "Company",
     links: [
-      { name: "About Us", href: "/aboutus" },
+      { name: "About RelunoOS", href: "/about" },
       { name: "Contact", href: "/contact" },
-      { name: "Careers", href: "/careers" },
-      { name: "Support", href: "/support" },
-      { name: "Affiliates", href: "/affiliates" },
+      { name: "Security & Privacy", href: "/security" },
+      { name: "Pricing", href: "/pricing" },
+      { name: "Sign in", href: "/login" },
     ],
   },
   legal: {
     title: "Legal",
     links: [
-      { name: "Privacy Policy", href: "/privacy-policy" },
-      { name: "Terms of Service", href: "/terms-of-service" },
-      { name: "GDPR Notice", href: "/gdpr-notice" },
-      { name: "CA Privacy", href: "/ca-privacy" },
-      { name: "Disclaimers", href: "/disclaimers" },
+      { name: "Privacy Policy", href: "/privacy" },
+      { name: "Terms of Service", href: "/terms" },
+      { name: "Acceptable Use", href: "/acceptable-use" },
+      { name: "Subprocessors", href: "/subprocessors" },
+      { name: "Status", href: "/status" },
     ],
   },
 };
 
 const Footer = () => {
   return (
-    <footer className="bg-[#050505] border-t border-zinc-900 pt-20 pb-10 font-sans selection:bg-blue-600/30">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-12 mb-16">
-          {/* Brand - Span 2 on mobile/tablet to give it room */}
+    <footer className="border-t border-blue-500/40 bg-[#063EE2] pb-10 pt-20 text-white">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-16 grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-3 lg:grid-cols-6">
+          {/* Brand */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-6 group">
-              <div className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg group-hover:border-blue-600/50 transition-all duration-500">
-                <Cpu className="w-5 h-5 text-cyan-400" />
-              </div>
-              <span className="text-xl font-black tracking-tighter text-white uppercase">Reluno</span>
-            </Link>
-            <p className="text-[11px] text-zinc-500 leading-relaxed uppercase tracking-tight font-bold">
-              High-performance legal synthesis. Accelerating justice for everyday people.
-            </p>
-            
-            {/* System Status - Quick look */}
-            <div className="mt-8 flex items-center gap-2">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-600"></span>
+            <Link to="/" className="mb-5 inline-flex items-center gap-2.5">
+              <img
+                src="/1-white.svg"
+                alt="RelunoOS Logo"
+                className="h-6 w-6 object-contain"
+              />
+              <span className="font-display text-2xl font-bold tracking-tight text-white">
+                Reluno
+                <span className="text-blue-200">OS</span>
               </span>
-              <span className="text-[9px] font-black text-blue-600/60 uppercase tracking-[0.2em]">Core Operational</span>
-            </div>
+            </Link>
+
+            <p className="max-w-[210px] text-xs leading-relaxed text-blue-100">
+              The AI operating system for agencies and freelancers.
+            </p>
           </div>
 
-          {/* Dynamic Link Columns */}
+          {/* Link Columns */}
           {Object.values(footerLinks).map((section) => (
             <div key={section.title}>
-              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-6">
+              <h4 className="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-200">
                 {section.title}
               </h4>
+
               <ul className="space-y-3">
                 {section.links.map((link) => (
                   <li key={link.name}>
                     <Link
                       to={link.href}
-                      className="text-[12px] font-medium text-zinc-500 hover:text-cyan-400 transition-colors duration-200"
+                      className="text-xs text-blue-100 transition-colors duration-150 hover:text-white"
                     >
                       {link.name}
                     </Link>
@@ -104,29 +102,38 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-zinc-900 flex flex-col md:row items-center justify-between gap-6">
-          <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">
-            © 2026 RELUNO LEGAL AI. ALL SYSTEMS SYNCHRONIZED.
+        <div className="flex flex-col items-center justify-between gap-5 border-t border-blue-500/40 pt-8 md:flex-row">
+          <p className="text-[11px] text-blue-100">
+            © {new Date().getFullYear()} RelunoOS. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
+
+          <div className="flex items-center gap-5">
             <a
-              href="https://twitter.com/relunoai"
+              href="https://twitter.com/relunoos"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-600 hover:text-white transition-colors"
+              aria-label="RelunoOS on X"
+              className="text-blue-100 transition-colors hover:text-white"
             >
-              <Twitter className="size-4" />
+              <Twitter size={15} />
             </a>
+
             <a
               href="https://linkedin.com/company/reluno"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-600 hover:text-white transition-colors"
+              aria-label="RelunoOS on LinkedIn"
+              className="text-blue-100 transition-colors hover:text-white"
             >
-              <Linkedin className="size-4" />
+              <Linkedin size={15} />
             </a>
           </div>
         </div>
+
+        <p className="mx-auto mt-10 max-w-2xl text-center text-[10px] leading-relaxed text-blue-100">
+          RelunoOS helps agencies and freelancers organize leads, clients, proposals,
+          projects, and client operations in one connected workspace.
+        </p>
       </div>
     </footer>
   );

@@ -51,6 +51,24 @@ enum TaskPriority {
   URGENT
 }
 
+enum PortalAccessMode {
+  INVITE_ONLY
+  CLIENT_EMAIL
+  PUBLIC_LINK
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum IntegrationProvider {
+  STRIPE
+  CLERK
+  GEMINI
+  RESEND
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Core tenancy and authentication
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,17 +98,25 @@ model Organization {
   caseStudies   CaseStudy[]
   testimonials  Testimonial[]
 
+  workspaceSettings       WorkspaceSettings?
+  clientPortalSettings    ClientPortalSettings?
+  notificationPreferences NotificationPreference[]
+  integrationConnections  IntegrationConnection[]
+
   @@index([clerkOrgId])
 }
 
 model User {
-  id              String  @id
-  email           String  @unique
+  id              String   @id
+  email           String   @unique
   firstName       String?
   lastName        String?
 
-  organizationId String?
-  clerkOrgId     String?
+  // Internal Prisma Organization ID
+  organizationId  String?
+
+  // Clerk Organization ID
+  clerkOrgId      String?
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
@@ -100,37 +126,39 @@ model User {
 
   workspace Workspace?
 
-  clients       Client[]
-  leads         Lead[]
-  aiIntakes     AIIntake[]
-  proposals     Proposal[]
-  contracts     Contract[]
-  projects      Project[]
-  milestones    Milestone[]
-  invoices      Invoice[]
-  payments      Payment[]
-  tasks         Task[]
-  activityLogs  ActivityLog[]
-  documents     Document[]
+  clients      Client[]
+  leads        Lead[]
+  aiIntakes    AIIntake[]
+  proposals    Proposal[]
+  contracts    Contract[]
+  projects     Project[]
+  milestones   Milestone[]
+  invoices     Invoice[]
+  payments     Payment[]
+  tasks        Task[]
+  activityLogs ActivityLog[]
+  documents    Document[]
 
   assignedTasks Task[] @relation("TaskAssignee")
+
+  notificationPreferences NotificationPreference[]
 
   @@index([organizationId])
   @@index([clerkOrgId])
 }
 
 model Workspace {
-  id             String  @id @default(cuid())
-  userId         String  @unique
-  organizationId String? @unique
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  organizationId String?  @unique
 
   businessName String
-  businessSlug String @unique
-  currency     String @default("USD")
-  country      String @default("US")
+  businessSlug String   @unique
+  currency     String   @default("USD")
+  country      String   @default("US")
   industry     String
   businessType String
-  agentName    String @default("Rulo")
+  agentName    String   @default("Rulo")
 
   proposalTemplateId String?
   crmPipelineId      String?
@@ -159,7 +187,7 @@ model OnboardingResponse {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   questionKey String
-  answer      String @db.Text
+  answer      String    @db.Text
   metadata    Json?
 
   createdAt DateTime @default(now())
@@ -168,11 +196,120 @@ model OnboardingResponse {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Settings, Client Portal, Notifications, and Integrations
+// ─────────────────────────────────────────────────────────────────────────────
+
+model WorkspaceSettings {
+  id                        String        @id @default(cuid())
+  organizationId            String        @unique
+  organization              Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  timezone                  String        @default("America/Toronto")
+  locale                    String        @default("en-CA")
+  dateFormat                String        @default("MMM d, yyyy")
+  weekStartsOn              Int           @default(1)
+
+  defaultCurrency           String        @default("CAD")
+  defaultProposalExpiryDays Int           @default(30)
+  defaultPaymentTermsDays   Int           @default(14)
+  proposalDefaults          Json?
+
+  defaultProjectStatus      ProjectStatus @default(PLANNING)
+  defaultProjectHealth      ProjectHealth @default(UNKNOWN)
+  defaultTaskPriority       TaskPriority  @default(MEDIUM)
+  projectWorkingDays        Json?
+  projectDefaultView        String        @default("board")
+  projectDefaults           Json?
+
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+
+  @@index([organizationId])
+}
+
+model ClientPortalSettings {
+  id                    String           @id @default(cuid())
+  organizationId        String           @unique
+  organization          Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  enabled               Boolean          @default(false)
+
+  portalName            String?
+  portalSlug            String           @unique
+  logoUrl               String?
+  primaryColor          String           @default("#18181B")
+
+  welcomeTitle          String?          @db.Text
+  welcomeMessage        String?          @db.Text
+  supportEmail          String?
+  supportUrl            String?
+
+  accessMode            PortalAccessMode @default(INVITE_ONLY)
+
+  allowClientMessages   Boolean          @default(true)
+  showProjectProgress   Boolean          @default(true)
+  showInvoices          Boolean          @default(true)
+  showProposals         Boolean          @default(true)
+  showDocuments         Boolean          @default(true)
+
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([portalSlug])
+}
+
+model NotificationPreference {
+  id             String              @id @default(cuid())
+  organizationId String?
+  userId         String?
+
+  organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventKey       String
+  channel        NotificationChannel
+  enabled        Boolean             @default(true)
+
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([organizationId, userId, eventKey, channel])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([organizationId, eventKey])
+  @@index([userId, eventKey])
+}
+
+model IntegrationConnection {
+  id                  String              @id @default(cuid())
+  organizationId      String
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  provider            IntegrationProvider
+  status              String              @default("DISCONNECTED")
+
+  // Safe metadata only. Never store API keys, tokens, or provider secrets.
+  externalAccountId   String?
+  externalAccountName String?
+  metadata            Json?
+
+  connectedAt         DateTime?
+  lastSyncedAt        DateTime?
+  lastError           String?             @db.Text
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([organizationId, provider])
+  @@index([organizationId, status])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Leads, AI intake, CRM, and proposals
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Lead {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -184,9 +321,9 @@ model Lead {
   company        String?
   phone          String?
   source         String?
-  status         String  @default("NEW")
+  status         String   @default("NEW")
   estimatedValue Float?
-  notes          String? @db.Text
+  notes          String?  @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,7 +335,7 @@ model Lead {
 }
 
 model AIIntake {
-  id             String  @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   organizationId String?
 
@@ -232,7 +369,7 @@ model AIIntake {
 }
 
 model Client {
-  id             String  @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   organizationId String?
 
@@ -279,7 +416,7 @@ model ClientNote {
 }
 
 model Proposal {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -324,7 +461,7 @@ model Proposal {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Contract {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -352,7 +489,7 @@ model Contract {
 }
 
 model Project {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -397,7 +534,7 @@ model Project {
 }
 
 model Milestone {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -430,13 +567,12 @@ model Milestone {
 }
 
 model Task {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   assigneeId String?
   assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
@@ -480,7 +616,7 @@ model Task {
 }
 
 model Invoice {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -508,7 +644,7 @@ model Invoice {
 }
 
 model Payment {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -535,7 +671,7 @@ model Payment {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ActivityLog {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 
@@ -556,7 +692,7 @@ model ActivityLog {
 }
 
 model Document {
-  id             String  @id @default(uuid())
+  id             String   @id @default(uuid())
   userId         String
   organizationId String?
 

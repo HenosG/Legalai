@@ -1,67 +1,73 @@
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   UserCircle, Building2, Globe2, BellRing, FileText, FolderKanban,
-  Users2, PlugZap, CreditCard, ShieldCheck, TriangleAlert, Loader2, AlertCircle,
+  Users2, PlugZap, CreditCard, ShieldCheck, TriangleAlert, AlertCircle,
 } from "lucide-react";
 import { settingsApi } from "@/lib/settings-api";
 import type { SettingsPayload } from "@/types/settings";
 import ProfileSettings from "@/components/settings/ProfileSettings";
 import WorkspaceSettingsPanel from "@/components/settings/WorkspaceSettings";
+import ClientPortalSettings from "@/components/settings/ClientPortalSettings";
+import NotificationsSettings from "@/components/settings/NotificationsSettings";
+import SecuritySettings from "@/components/settings/SecuritySettings";
 
-type TabKey =
-  | "profile" | "workspace" | "client-portal" | "notifications" | "proposals"
-  | "projects" | "team" | "integrations" | "billing" | "security" | "danger";
-
-const NAV_GROUPS: { label: string; items: { key: TabKey; label: string; icon: any }[] }[] = [
+const SETTINGS_NAV = [
   {
-    label: "Personal",
+    group: "Personal",
     items: [
-      { key: "profile", label: "Profile", icon: UserCircle },
-      { key: "notifications", label: "Notifications", icon: BellRing },
-      { key: "security", label: "Security", icon: ShieldCheck },
+      { id: "settings-profile", label: "Profile", icon: UserCircle },
+      { id: "settings-notifications", label: "Notifications", icon: BellRing },
+      { id: "settings-security", label: "Security", icon: ShieldCheck },
     ],
   },
   {
-    label: "Workspace",
+    group: "Workspace",
     items: [
-      { key: "workspace", label: "Workspace", icon: Building2 },
-      { key: "client-portal", label: "Client Portal", icon: Globe2 },
-      { key: "proposals", label: "Proposal Defaults", icon: FileText },
-      { key: "projects", label: "Project Defaults", icon: FolderKanban },
-      { key: "team", label: "Team & Access", icon: Users2 },
-      { key: "integrations", label: "Integrations", icon: PlugZap },
-      { key: "billing", label: "Billing", icon: CreditCard },
+      { id: "settings-workspace", label: "Workspace", icon: Building2 },
+      { id: "settings-client-portal", label: "Client Portal", icon: Globe2 },
+      { id: "settings-proposal-defaults", label: "Proposal Defaults", icon: FileText },
+      { id: "settings-project-defaults", label: "Project Defaults", icon: FolderKanban },
+      { id: "settings-team-access", label: "Team & Access", icon: Users2 },
+      { id: "settings-integrations", label: "Integrations", icon: PlugZap },
+      { id: "settings-billing", label: "Billing", icon: CreditCard },
     ],
   },
   {
-    label: "Advanced",
-    items: [{ key: "danger", label: "Danger Zone", icon: TriangleAlert }],
+    group: "Advanced",
+    items: [{ id: "settings-danger-zone", label: "Danger Zone", icon: TriangleAlert }],
   },
-];
+] as const;
 
-const ALL_TABS = NAV_GROUPS.flatMap((g) => g.items);
+const ALL_ITEMS = SETTINGS_NAV.flatMap((g) => g.items);
 
-// Placeholder panel for tabs not yet built in this pass — honest "coming
-// soon" state rather than a broken/empty screen.
-const ComingSoonPanel = ({ label }: { label: string }) => (
-  <div className="rounded-2xl border border-zinc-100 bg-white p-10 text-center">
-    <p className="text-sm font-semibold text-zinc-600">{label} settings</p>
-    <p className="text-xs text-zinc-400 mt-1">This section is being built next — check back shortly.</p>
-  </div>
+const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+// Honest "not built yet" section — still gets a real heading + real id so
+// it participates in scroll nav, per the requirement that every listed
+// item corresponds to a real rendered section.
+const PendingSection = ({ id, title, description, note }: { id: string; title: string; description: string; note: string }) => (
+  <section id={id} className="scroll-mt-28">
+    <div className="mb-4">
+      <h2 className="text-lg font-bold text-zinc-900">{title}</h2>
+      <p className="text-sm text-zinc-500 mt-1">{description}</p>
+    </div>
+    <div className="rounded-2xl border border-zinc-100 bg-white p-8 text-center">
+      <p className="text-[13px] text-zinc-500">{note}</p>
+    </div>
+  </section>
 );
 
 export default function Account() {
   const { getToken } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get("tab") as TabKey) || "profile";
-
   const [settings, setSettings] = useState<SettingsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string>(ALL_ITEMS[0].id);
+  const mountedRef = useRef(true);
+
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,19 +75,32 @@ export default function Account() {
     try {
       const token = await getToken();
       const data = await settingsApi.getAll(token);
-      setSettings(data);
+      if (mountedRef.current) setSettings(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load settings");
+      if (mountedRef.current) setError(e instanceof Error ? e.message : "Unable to load settings");
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [getToken]);
 
   useEffect(() => { load(); }, [load]);
 
-  const setTab = (key: TabKey) => setSearchParams({ tab: key });
-
-  const activeLabel = ALL_TABS.find((t) => t.key === activeTab)?.label || "Profile";
+  // Scrollspy — active section tracks scroll position independent of data
+  // load state, so nav still works even if settings failed to fetch.
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.find((e) => e.isIntersecting);
+        if (visible) setActiveId(visible.target.id);
+      },
+      { rootMargin: "-20% 0px -65% 0px" }
+    );
+    ALL_ITEMS.forEach((item) => {
+      const el = document.getElementById(item.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [loading, error]); // re-observe once sections actually exist in the DOM
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-zinc-900">
@@ -91,49 +110,65 @@ export default function Account() {
         * { font-family: 'DM Sans', sans-serif; }
       `}</style>
 
-      <div className="max-w-6xl mx-auto px-6 sm:px-12 pt-16 pb-24">
+      <div className="max-w-7xl mx-auto px-6 sm:px-12 pt-16 pb-24">
         <div className="mb-8">
           <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Settings</p>
           <h1 className="font-serif text-4xl font-bold text-zinc-900 tracking-tight">Settings</h1>
           <p className="text-sm text-zinc-500 mt-2">Manage your personal account, workspace preferences, client experience, and billing.</p>
         </div>
 
-        {/* Mobile nav */}
-        <div className="sm:hidden mb-6">
+        {error && (
+          <div className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle size={18} className="text-red-500 shrink-0" />
+              <div>
+                <p className="text-[13px] font-semibold text-red-700">Unable to load settings</p>
+                <p className="text-[12px] text-red-600">{error}</p>
+              </div>
+            </div>
+            <button type="button" onClick={load} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-[12px] font-semibold hover:bg-red-700 transition-all shrink-0">
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Mobile section nav */}
+        <div className="lg:hidden mb-6">
           <select
-            value={activeTab}
-            onChange={(e) => setTab(e.target.value as TabKey)}
+            value={activeId}
+            onChange={(e) => scrollTo(e.target.value)}
             className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 bg-white text-sm outline-none"
-            aria-label="Settings section"
+            aria-label="Jump to settings section"
           >
-            {NAV_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
+            {SETTINGS_NAV.map((group) => (
+              <optgroup key={group.group} label={group.group}>
                 {group.items.map((item) => (
-                  <option key={item.key} value={item.key}>{item.label}</option>
+                  <option key={item.id} value={item.id}>{item.label}</option>
                 ))}
               </optgroup>
             ))}
           </select>
         </div>
 
-        <div className="flex gap-8">
-          {/* Desktop sidebar */}
-          <aside className="hidden sm:block w-[230px] shrink-0">
-            <nav className="sticky top-16 space-y-6">
-              {NAV_GROUPS.map((group) => (
-                <div key={group.label}>
-                  <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-1.5">{group.label}</p>
+        <div className="grid lg:grid-cols-[230px_1fr] gap-10">
+          {/* Desktop scroll nav */}
+          <aside className="hidden lg:block">
+            <nav className="sticky top-10 space-y-6">
+              {SETTINGS_NAV.map((group) => (
+                <div key={group.group}>
+                  <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-1.5">{group.group}</p>
                   <div className="space-y-0.5">
                     {group.items.map((item) => {
                       const Icon = item.icon;
-                      const active = activeTab === item.key;
+                      const active = activeId === item.id;
                       return (
                         <button
-                          key={item.key}
+                          key={item.id}
                           type="button"
-                          onClick={() => setTab(item.key)}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-left ${
-                            active ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100"
+                          onClick={() => scrollTo(item.id)}
+                          aria-current={active ? "true" : undefined}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-colors text-left ${
+                            active ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                           }`}
                         >
                           <Icon size={15} />
@@ -147,33 +182,79 @@ export default function Account() {
             </nav>
           </aside>
 
-          {/* Active panel */}
-          <div className="flex-1 min-w-0 max-w-[820px]">
-            {loading ? (
-              <div className="space-y-4">
+          {/* Continuous content */}
+          <div className="min-w-0 max-w-[860px] space-y-14">
+            {loading && !settings ? (
+              <>
                 <div className="h-32 rounded-2xl bg-white border border-zinc-100 animate-pulse" />
                 <div className="h-48 rounded-2xl bg-white border border-zinc-100 animate-pulse" />
-              </div>
-            ) : error || !settings ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <AlertCircle size={22} className="text-red-400 mb-3" />
-                <p className="text-sm text-zinc-500 mb-3">{error || "Couldn't load settings."}</p>
-                <button onClick={load} className="px-4 py-2 rounded-xl bg-zinc-900 text-white text-xs font-bold">Try again</button>
-              </div>
+              </>
+            ) : settings ? (
+              <>
+                <section id="settings-profile" className="scroll-mt-28">
+                  <ProfileSettings settings={settings} />
+                </section>
+                <section id="settings-notifications" className="scroll-mt-28">
+                  <NotificationsSettings settings={settings} />
+                </section>
+                <section id="settings-security" className="scroll-mt-28">
+                  <SecuritySettings settings={settings} />
+                </section>
+                <section id="settings-workspace" className="scroll-mt-28">
+                  <WorkspaceSettingsPanel settings={settings} onSaved={load} />
+                </section>
+                <section id="settings-client-portal" className="scroll-mt-28">
+                  <ClientPortalSettings settings={settings} onSaved={load} />
+                </section>
+                <PendingSection
+                  id="settings-proposal-defaults"
+                  title="Proposal defaults"
+                  description="Set the baseline terms and content used when you create new proposals."
+                  note="Proposal default settings are being connected — check back shortly."
+                />
+                <PendingSection
+                  id="settings-project-defaults"
+                  title="Project defaults"
+                  description="Configure how new projects and tasks are created in your workspace."
+                  note="Project default settings are being connected — check back shortly."
+                />
+                <PendingSection
+                  id="settings-team-access"
+                  title="Team & access"
+                  description="Manage how your team collaborates in this workspace."
+                  note="Team workspaces are coming soon — available when Clerk Organizations is enabled for this app."
+                />
+                <PendingSection
+                  id="settings-integrations"
+                  title="Integrations"
+                  description="Connect the services that power your agency workflows."
+                  note="A detailed integrations view (Clerk, Stripe, Gemini, Resend) is being connected — check back shortly."
+                />
+                <PendingSection
+                  id="settings-billing"
+                  title="Billing"
+                  description="Manage your RelunoOS plan, payment method, and billing history."
+                  note={settings.billing.stripeConnected ? "Billing controls are being connected — check back shortly." : "Stripe billing is not connected yet. Billing controls will become available once your Stripe connection is complete."}
+                />
+                <PendingSection
+                  id="settings-danger-zone"
+                  title="Danger zone"
+                  description="Irreversible actions for your workspace."
+                  note="Workspace export and deletion are currently handled by support. Contact support to request these actions."
+                />
+              </>
             ) : (
-              <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                {activeTab === "profile" && <ProfileSettings settings={settings} />}
-                {activeTab === "workspace" && <WorkspaceSettingsPanel settings={settings} onSaved={load} />}
-                {activeTab === "client-portal" && <ComingSoonPanel label="Client Portal" />}
-                {activeTab === "notifications" && <ComingSoonPanel label="Notifications" />}
-                {activeTab === "proposals" && <ComingSoonPanel label="Proposal Defaults" />}
-                {activeTab === "projects" && <ComingSoonPanel label="Project Defaults" />}
-                {activeTab === "team" && <ComingSoonPanel label="Team & Access" />}
-                {activeTab === "integrations" && <ComingSoonPanel label="Integrations" />}
-                {activeTab === "billing" && <ComingSoonPanel label="Billing" />}
-                {activeTab === "security" && <ComingSoonPanel label="Security" />}
-                {activeTab === "danger" && <ComingSoonPanel label="Danger Zone" />}
-              </motion.div>
+              // Sections still render with real ids/headings so nav works,
+              // even with zero data — per the requirement that nav must
+              // function even when settings fail to load.
+              ALL_ITEMS.map((item) => (
+                <section key={item.id} id={item.id} className="scroll-mt-28">
+                  <h2 className="text-lg font-bold text-zinc-900">{item.label}</h2>
+                  <div className="mt-4 rounded-2xl border border-zinc-100 bg-white p-8 text-center">
+                    <p className="text-[13px] text-zinc-400">Connect settings data to continue.</p>
+                  </div>
+                </section>
+              ))
             )}
           </div>
         </div>

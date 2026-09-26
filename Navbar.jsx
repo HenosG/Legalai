@@ -234,12 +234,12 @@ export const Navbar = () => {
       )}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Brand Logo with Dynamic White/Blue Icon + Text */}
+        {/* Brand Logo with Icon + Text */}
 <Link to="/" className="flex items-center gap-2 group">
   <img 
-    src={scrolled ? "/1.svg" : "/1-white.svg"} 
+    src="/1.svg" 
     alt="RelunoOS Logo" 
-    className="h-6 w-6 object-contain transition-all" 
+    className="h-6 w-6 object-contain" 
   />
   <span
     className={cn(
