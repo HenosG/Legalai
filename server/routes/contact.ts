@@ -1,7 +1,8 @@
-const express = require("express");
-const prisma = require("../lib/prisma");
+import { Router } from "express";
+import { PrismaClient } from "@prisma/client";
 
-const router = express.Router();
+const router = Router();
+const prisma = new PrismaClient();
 
 const MAX_NAME_LENGTH = 120;
 const MAX_EMAIL_LENGTH = 320;
@@ -18,15 +19,15 @@ const allowedSubjects = new Set([
   "General question",
 ]);
 
-function cleanText(value) {
+function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeEmail(value) {
+function normalizeEmail(value: unknown) {
   return cleanText(value).toLowerCase();
 }
 
-function isValidEmail(email) {
+function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
@@ -34,6 +35,15 @@ function isValidEmail(email) {
  * POST /api/contact
  *
  * Public endpoint used by src/pages/Contact.tsx.
+ *
+ * Expected body:
+ * {
+ *   firstName: string,
+ *   lastName: string,
+ *   email: string,
+ *   subject: string | null,
+ *   message: string
+ * }
  */
 router.post("/", async (req, res) => {
   try {
@@ -123,4 +133,4 @@ router.post("/", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

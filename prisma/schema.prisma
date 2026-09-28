@@ -715,12 +715,21 @@ model Document {
 
 model ContactSubmission {
   id        String   @id @default(cuid())
+
   firstName String
   lastName  String
   email     String
-  subject   String
+  subject   String?
   message   String   @db.Text
+
+  isRead    Boolean  @default(false)
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([isRead, createdAt])
+  @@index([email])
 }
 
 model WebinarAccessRequest {

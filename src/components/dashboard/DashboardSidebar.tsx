@@ -576,10 +576,15 @@ function DashboardSidebar() {
           aria-label="Go to dashboard"
         >
           <img
-            src="/brand-icon.png"
+            src="/1.svg"
             alt="RelunoOS"
             className="h-6 w-6 shrink-0 object-contain"
           />
+          {!collapsed && (
+            <span className="text-sm font-extrabold tracking-[-0.035em] text-zinc-900">
+              RELUNOOS<span className="text-[#063ee2]">.</span>
+            </span>
+          )}
         </Link>
 
         {!collapsed && (

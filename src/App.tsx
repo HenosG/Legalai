@@ -1,7 +1,11 @@
-// RelunoOS Core Application Router
-
 import { useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+} from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 
@@ -15,7 +19,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import OnboardingModal from "@/components/OnboardingModal";
 
-// ─── Public Pages ─────────────────────────────────────────────────────────────
+// ─── Public Pages & Standalone Auth ───────────────────────────────────────────
+
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -52,7 +57,9 @@ import Subprocessors from "./pages/public/Subprocessors";
 import Status from "./pages/public/Status";
 
 // ─── Authenticated RelunoOS Pages ────────────────────────────────────────────
+
 import Dashboard from "./pages/Dashboard";
+
 import CRM from "./pages/CRM";
 import ClientDetail from "./pages/ClientDetail";
 
@@ -67,20 +74,30 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 
 import Invoices from "./pages/Invoices";
+import InvoiceNew from "./pages/InvoiceNew";
+import InvoiceDetail from "./pages/InvoiceDetail";
+import InvoiceEdit from "./pages/InvoiceEdit";
+
 import Account from "./pages/Account";
+import BillingSettings from "./pages/settings/BillingSettings";
+import IntegrationSettings from "./pages/settings/IntegrationSettings";
 
 // ─── Temporary Dashboard Stubs ───────────────────────────────────────────────
+
 import TempPlaceholder from "./pages/TempPlaceholder";
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 // ─── Public Layout ────────────────────────────────────────────────────────────
+
 const PublicLayout = () => <Outlet />;
 
 // ─── Authenticated App Layout ─────────────────────────────────────────────────
+
 const AppLayout = () => {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -109,7 +126,6 @@ const AppLayout = () => {
           setIsOnboardingOpen(true);
         }
       } catch (error) {
-        // Do not block the protected dashboard if onboarding status is temporarily unavailable.
         console.error("Failed to check onboarding status:", error);
       } finally {
         if (mounted) {
@@ -127,12 +143,12 @@ const AppLayout = () => {
 
   return (
     <ProtectedRoute>
-      <div className="relative flex h-screen w-full overflow-hidden bg-[#FAFAFA]">
-        <div className="h-full flex-shrink-0 flex-grow-0 border-r border-zinc-200/60 bg-[#FAFAFA]">
+      <div className="relative flex h-screen w-full overflow-hidden bg-[#fafafa]">
+        <div className="h-full flex-shrink-0 flex-grow-0 border-r border-zinc-200/60 bg-[#fafafa]">
           <DashboardSidebar />
         </div>
 
-        <main className="relative h-full min-w-0 flex-1 overflow-y-auto bg-[#FAFAFA]">
+        <main className="relative h-full min-w-0 flex-1 overflow-y-auto bg-[#fafafa]">
           <Outlet />
         </main>
 
@@ -151,16 +167,15 @@ const AppLayout = () => {
 };
 
 // ─── Application ──────────────────────────────────────────────────────────────
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <AuthProvider>
         <SubscriptionProvider>
           <TooltipProvider>
-            {/* Existing shadcn toast support */}
             <Toaster />
 
-            {/* RelunoOS Sonner notification system */}
             <Sonner
               position="top-right"
               richColors
@@ -194,25 +209,34 @@ const App = () => (
             />
 
             <Routes>
-              {/* ── Public Marketing Routes ── */}
+              {/* ── Public Marketing Routes ─────────────────────────────── */}
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Index />} />
 
-                {/* Auth */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+                {/* Standalone Clerk auth routes */}
+                <Route path="/login/*" element={<Login />} />
+                <Route path="/signup/*" element={<Signup />} />
 
-                {/* Primary conversion pages */}
+                {/* Core conversion pages */}
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/support" element={<Support />} />
 
                 {/* Platform */}
                 <Route path="/platform" element={<Platform />} />
-                <Route path="/platform/ai-intake" element={<AIIntakePlatform />} />
+                <Route
+                  path="/platform/ai-intake"
+                  element={<AIIntakePlatform />}
+                />
                 <Route path="/platform/crm" element={<CRMPlatform />} />
-                <Route path="/platform/proposals" element={<ProposalsPlatform />} />
-                <Route path="/platform/projects" element={<ProjectsPlatform />} />
+                <Route
+                  path="/platform/proposals"
+                  element={<ProposalsPlatform />}
+                />
+                <Route
+                  path="/platform/projects"
+                  element={<ProjectsPlatform />}
+                />
                 <Route
                   path="/platform/client-portal"
                   element={<ClientPortalPlatform />}
@@ -220,7 +244,10 @@ const App = () => (
 
                 {/* Solutions */}
                 <Route path="/solutions/agencies" element={<Agencies />} />
-                <Route path="/solutions/freelancers" element={<Freelancers />} />
+                <Route
+                  path="/solutions/freelancers"
+                  element={<Freelancers />}
+                />
                 <Route
                   path="/solutions/creative-agencies"
                   element={<CreativeAgencies />}
@@ -245,19 +272,23 @@ const App = () => (
                 <Route path="/security" element={<Security />} />
                 <Route path="/integrations" element={<Integrations />} />
 
-                {/* Legal and Trust */}
+                {/* Legal and trust */}
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
-                <Route path="/acceptable-use" element={<AcceptableUse />} />
+                <Route
+                  path="/acceptable-use"
+                  element={<AcceptableUse />}
+                />
                 <Route path="/subprocessors" element={<Subprocessors />} />
                 <Route path="/status" element={<Status />} />
               </Route>
 
-              {/* ── Authenticated RelunoOS Product Routes ── */}
+              {/* ── Authenticated RelunoOS Product Routes ──────────────── */}
               <Route element={<AppLayout />}>
+                {/* Dashboard */}
                 <Route path="/dashboard" element={<Dashboard />} />
 
-                {/* CRM */}
+                {/* CRM and client detail */}
                 <Route path="/crm" element={<CRM />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
 
@@ -265,14 +296,18 @@ const App = () => (
                 <Route path="/ai" element={<AIIntake />} />
                 <Route path="/intake" element={<AIIntake />} />
                 <Route path="/ai-intake" element={<AIIntake />} />
-                <Route path="/ai-intake/:id" element={<AIIntakeDetail />} />
+                <Route
+                  path="/ai-intake/:id"
+                  element={<AIIntakeDetail />}
+                />
 
                 {/* Proposals */}
                 <Route path="/proposals" element={<Proposals />} />
                 <Route path="/proposals/new" element={<ProposalNew />} />
-                <Route path="/proposals/:id" element={<ProposalDetail />} />
-
-                {/* Preserve old edit links without maintaining a second editor page */}
+                <Route
+                  path="/proposals/:id"
+                  element={<ProposalDetail />}
+                />
                 <Route
                   path="/proposals/:id/edit"
                   element={<Navigate to=".." replace />}
@@ -280,39 +315,63 @@ const App = () => (
 
                 {/* Projects */}
                 <Route path="/projects" element={<Projects />} />
-                <Route path="/projects/:id" element={<ProjectDetail />} />
+                <Route
+                  path="/projects/:id"
+                  element={<ProjectDetail />}
+                />
 
-                {/* Finance and Account */}
+                {/* Invoices and client payment workflow */}
                 <Route path="/invoices" element={<Invoices />} />
+                <Route path="/invoices/new" element={<InvoiceNew />} />
+                <Route
+                  path="/invoices/:invoiceId"
+                  element={<InvoiceDetail />}
+                />
+                <Route
+                  path="/invoices/:invoiceId/edit"
+                  element={<InvoiceEdit />}
+                />
+
+                {/* Account and organization settings */}
                 <Route path="/account" element={<Account />} />
-
-                {/* Future authenticated modules */}
-                <Route path="/tasks" element={<TempPlaceholder />} />
-                <Route path="/calendar" element={<TempPlaceholder />} />
-                <Route path="/analytics" element={<TempPlaceholder />} />
-
-                {/* Old internal settings location */}
                 <Route
                   path="/settings"
                   element={<Navigate to="/account" replace />}
                 />
+                <Route
+                  path="/settings/billing"
+                  element={<BillingSettings />}
+                />
+                <Route
+                  path="/settings/integrations"
+                  element={<IntegrationSettings />}
+                />
+
+                {/* Existing or upcoming authenticated modules */}
+                <Route path="/tasks" element={<TempPlaceholder />} />
+                <Route path="/calendar" element={<TempPlaceholder />} />
+                <Route path="/analytics" element={<TempPlaceholder />} />
+                <Route path="/activity" element={<TempPlaceholder />} />
               </Route>
 
-              {/* ── App Redirects ── */}
+              {/* ── Helpful App Redirects ──────────────────────────────── */}
               <Route
                 path="/home"
                 element={<Navigate to="/dashboard" replace />}
               />
+
+              {/* Legacy billing links now go to Invoices */}
               <Route
                 path="/billing"
-                element={<Navigate to="/account" replace />}
-              />
-              <Route
-                path="/settings-and-billing"
-                element={<Navigate to="/account" replace />}
+                element={<Navigate to="/invoices" replace />}
               />
 
-              {/* ── Old Legal Product Redirects ── */}
+              <Route
+                path="/settings-and-billing"
+                element={<Navigate to="/settings/billing" replace />}
+              />
+
+              {/* ── Old Reluno Legal Redirects ─────────────────────────── */}
               <Route
                 path="/legalquestionai"
                 element={<Navigate to="/platform/ai-intake" replace />}
@@ -338,7 +397,7 @@ const App = () => (
                 element={<Navigate to="/platform" replace />}
               />
 
-              {/* ── 404 ── */}
+              {/* ── 404 ────────────────────────────────────────────────── */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>

@@ -3,14 +3,29 @@ import dotenv from "dotenv";
 import Stripe from "stripe";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { clerkMiddleware } from "@clerk/express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./server/lib/prisma.js";
+
+import clerkWebhookRouter from "./server/clerk-webhook.js";
+import stripeWebhookRouter from "./server/routes/stripe-webhook.js";
+import * as subscriptionModule from "./server/routes/subscriptions.js";
+import checkoutRouter from "./server/routes/checkout.js";
+import contactRouter from "./server/routes/contact.js";
+import contactMessagesRouter from "./server/routes/contactMessages.js";
+import onboardingRouter from "./src/routes/onboarding.js";
+import clientsRouter from "./src/server/routes/clients.js";
+import aiIntakeRouter from "./server/routes/aiIntake";
+import proposalsRouter from "./server/routes/proposals.js";
+import projectRoutes from "./server/routes/projects.js";
+import tasksRouter from "./server/routes/tasks.js";
+import milestonesRouter from "./server/routes/milestones.js";
+import settingsRouter from "./server/routes/settings.js";
 
 dotenv.config();
 
 // ─── Initialization ──────────────────────────────────────────────────────────
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT || 5000);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2023-10-16",
@@ -24,27 +39,9 @@ const model = genAI.getGenerativeModel({
   model: "gemini-2.5-flash",
 });
 
-const prisma = new PrismaClient();
+const subscriptionRouter = subscriptionModule.default;
 
 app.set("stripe", stripe);
-
-// ─── Route Imports ───────────────────────────────────────────────────────────
-
-import clerkWebhookRouter from "./server/clerk-webhook.js";
-import stripeWebhookRouter from "./server/routes/stripe-webhook.js";
-import * as subscriptionModule from "./server/routes/subscriptions.js";
-import checkoutRouter from "./server/routes/checkout.js";
-import contactRouter from "./server/routes/contact.js";
-import onboardingRouter from "./src/routes/onboarding.js";
-import clientsRouter from "./src/server/routes/clients.js";
-import aiIntakeRouter from "./server/routes/aiIntake";
-import proposalsRouter from "./server/routes/proposals.js";
-import projectRoutes from "./server/routes/projects.js";
-import tasksRouter from "./server/routes/tasks.js";
-import milestonesRouter from "./server/routes/milestones.js";
-import settingsRouter from "./server/routes/settings.js";
-
-const subscriptionRouter = subscriptionModule.default;
 
 // ─── Environment Validation ──────────────────────────────────────────────────
 
@@ -63,25 +60,32 @@ REQUIRED_ENV.forEach((key) => {
 
 if (!process.env.GEMINI_API_KEY && !process.env.VITE_GEMINI_API_KEY) {
   console.warn(
-    "⚠️ WARNING: Gemini API Key is missing! Set GEMINI_API_KEY or VITE_GEMINI_API_KEY."
+    "⚠️ WARNING: Gemini API Key is missing. Set GEMINI_API_KEY."
+  );
+}
+
+if (!process.env.CONTACT_ADMIN_CLERK_USER_IDS) {
+  console.warn(
+    "⚠️ WARNING: CONTACT_ADMIN_CLERK_USER_IDS is missing. Contact inbox access will remain blocked."
   );
 }
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "http://127.0.0.1:8080",
+  "http://127.0.0.1:5173",
+  process.env.CLIENT_URL,
+].filter(Boolean) as string[];
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
-  const allowedOrigins = [
-    "http://localhost:8080",
-    "http://localhost:5173",
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:5173",
-    process.env.CLIENT_URL,
-  ].filter(Boolean);
-
   if (origin && allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
   }
 
   res.header(
@@ -97,18 +101,19 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   }
 
-  next();
+  return next();
 });
 
 // ─── Clerk Middleware ────────────────────────────────────────────────────────
 
 app.use(clerkMiddleware());
 
-// ─── Webhook Routes ──────────────────────────────────────────────────────────
-// These routes must receive raw request bodies before express.json().
+// ─── Webhooks ────────────────────────────────────────────────────────────────
+// Webhook routes must be mounted before express.json().
+// Stripe and Clerk need the unparsed raw body for signature verification.
 
 app.use(
   "/api/stripe/webhook",
@@ -124,12 +129,12 @@ app.use(
 
 // ─── JSON Body Parser ────────────────────────────────────────────────────────
 
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: "1mb" }));
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 
 app.get("/api/health", (_req, res) => {
-  res.json({
+  return res.status(200).json({
     status: "ok",
     timestamp: new Date().toISOString(),
   });
@@ -141,7 +146,28 @@ console.log("--- Initializing Routes ---");
 
 app.use("/api/user", subscriptionRouter);
 app.use("/api/stripe", checkoutRouter);
+
+/*
+  Public marketing-site contact form.
+
+  POST /api/contact
+
+  This is intentionally public. Visitors should not need an account
+  to contact RelunoOS.
+*/
 app.use("/api/contact", contactRouter);
+
+/*
+  Private internal contact inbox.
+
+  GET   /api/contact-messages
+  PATCH /api/contact-messages/:id/read
+
+  Clerk authentication and admin authorization are enforced inside
+  server/routes/contactMessages.ts through requireContactAdmin.
+*/
+app.use("/api/contact-messages", contactMessagesRouter);
+
 app.use("/api/onboarding", onboardingRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/api/ai-intake", aiIntakeRouter);
@@ -151,7 +177,7 @@ app.use("/api/tasks", tasksRouter);
 app.use("/api/milestones", milestonesRouter);
 
 /**
- * Settings endpoints:
+ * Settings routes:
  * GET   /api/settings
  * PATCH /api/settings/workspace
  * GET   /api/settings/client-portal
@@ -169,7 +195,9 @@ app.get("/api/dashboard/metrics", async (req: any, res) => {
     const userId = auth?.userId || (req.query.userId as string);
 
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
     }
 
     const [clientCount, proposalCount, projectCount, invoiceStats] =
@@ -202,7 +230,7 @@ app.get("/api/dashboard/metrics", async (req: any, res) => {
         }),
       ]);
 
-    return res.json({
+    return res.status(200).json({
       activeClients: clientCount,
       openProposals: proposalCount,
       activeProjects: projectCount,
@@ -230,7 +258,9 @@ app.get("/api/dashboard/activity", async (req: any, res) => {
     const limit = Number.parseInt(req.query.limit as string, 10) || 20;
 
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
     }
 
     const activities = await prisma.activityLog.findMany({
@@ -239,7 +269,9 @@ app.get("/api/dashboard/activity", async (req: any, res) => {
       take: Math.min(limit, 100),
     });
 
-    return res.json({ activities });
+    return res.status(200).json({
+      activities,
+    });
   } catch (error) {
     console.error("Error fetching activity feed:", error);
 
@@ -259,7 +291,9 @@ app.post("/api/ai/query", async (req: any, res) => {
     const userId = auth?.userId || (req.query.userId as string);
 
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
     }
 
     const { prompt } = req.body;
@@ -273,7 +307,7 @@ app.post("/api/ai/query", async (req: any, res) => {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       reply: responseText,
     });
@@ -296,7 +330,9 @@ app.post("/api/ai-assistant", async (req: any, res) => {
     const userId = auth?.userId || (req.query.userId as string);
 
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
     }
 
     const { query } = req.body;
@@ -444,7 +480,7 @@ Write a helpful, professional, concise but informative response. Use only facts 
 
     const synthesisResult = await model.generateContent(synthesisPrompt);
 
-    return res.json({
+    return res.status(200).json({
       type: plan.cardType || "ai_response",
       message: synthesisResult.response.text(),
       data: fetchedData,
@@ -468,7 +504,7 @@ app.get("/api/templates", async (_req, res) => {
   try {
     const templates = await prisma.proposalTemplate.findMany();
 
-    return res.json(templates);
+    return res.status(200).json(templates);
   } catch (error) {
     console.error("Error fetching templates:", error);
 
@@ -565,7 +601,7 @@ ${content.substring(0, 8000)}
 
     const aiData = JSON.parse(jsonMatch[0]);
 
-    return res.json({
+    return res.status(200).json({
       id: `ai-${Date.now()}`,
       filename,
       ...aiData,
@@ -607,7 +643,7 @@ app.get("/api/user/:identifier", async (req: any, res) => {
       });
     }
 
-    return res.json(user);
+    return res.status(200).json(user);
   } catch (error: any) {
     console.error("❌ User lookup error:", error?.message || error);
 
@@ -625,6 +661,28 @@ app.use((_req, res) => {
   });
 });
 
+// ─── Graceful Shutdown ───────────────────────────────────────────────────────
+
+async function shutdown(signal: string) {
+  console.log(`${signal} received. Disconnecting Prisma.`);
+
+  try {
+    await prisma.$disconnect();
+  } catch (error) {
+    console.error("Error while disconnecting Prisma:", error);
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.on("SIGINT", () => {
+  void shutdown("SIGINT");
+});
+
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM");
+});
+
 // ─── Start Server ────────────────────────────────────────────────────────────
 
 console.log("🚀 Initializing database connection...");
@@ -634,7 +692,7 @@ prisma
   .then(() => {
     console.log("✅ Database connected successfully via Prisma.");
 
-    app.listen(Number(PORT), () => {
+    app.listen(PORT, () => {
       console.log(`✅ Reluno server active on port ${PORT}`);
     });
   })

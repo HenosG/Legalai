@@ -357,6 +357,7 @@ function ProductPreview({
   );
 }
 
+
 export default function Index() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAFAFA] text-zinc-900">
@@ -376,10 +377,11 @@ export default function Index() {
         }
 
         .hero-grid {
+          background-color: #063ee2;
           background-image:
-            linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-          background-size: 42px 42px;
+            linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+          background-size: 48px 48px;
         }
 
         .hero-stripes {
@@ -424,17 +426,24 @@ export default function Index() {
       <Navbar />
 
       <main>
-        {/* Hero Section */}
-<section className="relative isolate overflow-hidden bg-[#063ee2] pb-24 pt-36 text-white sm:pb-32 sm:pt-44 border-b border-blue-700">
-  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_50%)]" />
-  <div className="absolute left-1/2 top-[-100px] h-[400px] w-[700px] -translate-x-1/2 rounded-full bg-blue-500/30 blur-3xl pointer-events-none" />
+        {/* Hero Section with Blueprint Grid & Center-Light / Dark-Edge Gradient */}
+        <section className="hero-grid relative isolate overflow-hidden pb-24 pt-36 text-white sm:pb-32 sm:pt-44 border-b border-blue-700">
+          
+          {/* Main Vignette Lighting: Lighter Center fading into Darker Edges */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,rgba(3,26,117,0.65)_70%,rgba(1,11,51,0.9)_100%)] pointer-events-none" />
 
-  <div className="relative mx-auto max-w-7xl px-6 sm:px-10">
-    <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-      <div className="max-w-3xl">
-        <div className="rise-in inline-flex items-center rounded-lg border border-blue-400/40 bg-blue-600/60 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100 backdrop-blur-md">
-          Built for agencies and freelancers
-        </div>
+          {/* Diagonal Stripe Pattern Overlay */}
+          <div className="hero-stripes absolute inset-0 pointer-events-none opacity-40" />
+          
+          {/* Extra Center Spotlight Glow */}
+          <div className="absolute left-1/2 top-1/3 h-[500px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/25 blur-[120px] pointer-events-none" />
+
+          <div className="relative mx-auto max-w-7xl px-6 sm:px-10">
+            <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+              <div className="max-w-3xl">
+                <div className="rise-in inline-flex items-center rounded-lg border border-blue-400/40 bg-blue-600/60 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100 backdrop-blur-md">
+                  Built for agencies and freelancers
+                </div>
 
                 <h1 className="rise-in rise-in-delay-1 mt-7 text-5xl font-bold leading-[0.98] tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
                   Run your client workflow on autopilot.
@@ -468,15 +477,15 @@ export default function Index() {
                 </div>
 
                 <div className="rise-in rise-in-delay-3 mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-blue-100/90">
-  <span className="inline-flex items-center gap-2">
-    <Check size={14} className="text-blue-200" />
-    No credit card required
-  </span>
-  <span className="inline-flex items-center gap-2">
-    <Check size={14} className="text-blue-200" />
-    You stay in control of every client action
-  </span>
-</div>
+                  <span className="inline-flex items-center gap-2">
+                    <Check size={14} className="text-blue-200" />
+                    No credit card required
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Check size={14} className="text-blue-200" />
+                    You stay in control of every client action
+                  </span>
+                </div>
               </div>
 
               <div className="rise-in rise-in-delay-2 relative mx-auto w-full max-w-xl lg:max-w-none">
@@ -692,51 +701,110 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Workflow steps */}
-        <section className="border-y border-zinc-100 bg-[#F5F7FF] px-6 py-24 sm:px-10 sm:py-32">
-          <div className="mx-auto max-w-7xl">
-            <div className="max-w-2xl">
-              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
-                How it works
+        {/* Workflow steps - Modern Alternating Layout */}
+<section className="border-y border-zinc-100 bg-[#F5F7FF] px-6 py-24 sm:px-10 sm:py-32">
+  <div className="mx-auto max-w-7xl">
+    
+    <div className="max-w-2xl">
+      <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
+        How it works
+      </p>
+
+      <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
+        Move from first inquiry to active project with less friction.
+      </h2>
+    </div>
+
+    <div className="mt-20 space-y-24 sm:space-y-32">
+      {workflowSteps.map((step, index) => {
+        const Icon = step.icon;
+        const reverse = index % 2 !== 0;
+
+        return (
+          <div
+            key={step.number}
+            className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20"
+          >
+            {/* Text Side */}
+            <div className={reverse ? "lg:order-2" : ""}>
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#063ee2]">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#063ee2] text-white text-[10px]">
+                  {step.number}
+                </span>
+                Workflow Step {step.number}
+              </div>
+
+              <h3 className="mt-6 text-3xl font-bold leading-[1.05] tracking-[-0.04em] text-zinc-900 sm:text-4xl">
+                {step.title}
+              </h3>
+
+              <p className="mt-5 max-w-xl text-base leading-7 text-zinc-500">
+                {step.description}
               </p>
 
-              <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
-                Move from first inquiry to active project with less friction.
-              </h2>
-            </div>
-
-            <div className="mt-16 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {workflowSteps.map((step) => {
-                const Icon = step.icon;
-
-                return (
-                  <div
-                    key={step.number}
-                    className="relative rounded-2xl border border-blue-100/80 bg-white p-6 shadow-[0_10px_30px_rgba(6,62,226,0.05)]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold tracking-[0.18em] text-[#063ee2]">
-                        {step.number}
-                      </span>
-
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#063ee2]">
-                        <Icon size={17} />
-                      </div>
-                    </div>
-
-                    <h3 className="mt-7 text-base font-bold text-zinc-900">
-                      {step.title}
-                    </h3>
-
-                    <p className="mt-3 text-sm leading-6 text-zinc-500">
-                      {step.description}
-                    </p>
+              <div className="mt-7 space-y-3">
+                {[
+                  "Optimized for speed and minimal manual effort",
+                  "Connected automatically to your agency workspace",
+                  "Built with human-in-the-loop review guardrails"
+                ].map((bullet) => (
+                  <div key={bullet} className="flex items-center gap-3 text-sm text-zinc-700">
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#063ee2] text-white">
+                      <Check size={10} strokeWidth={3} />
+                    </span>
+                    {bullet}
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
+
+            {/* Visual Preview Side */}
+            <div
+              className={`rounded-[2rem] bg-gradient-to-br from-[#063ee2] via-blue-700 to-indigo-950 p-6 sm:p-9 shadow-2xl shadow-blue-950/15 ${
+                reverse ? "lg:order-1" : ""
+              }`}
+            >
+              <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-white p-6 shadow-xl">
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#063ee2]">
+                      <Icon size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900">Step {step.number}: {step.title}</p>
+                      <p className="text-[10px] text-zinc-500">RelunoOS Workspace Active</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#063ee2] border border-blue-200">
+                    Live
+                  </span>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                    System State
+                  </p>
+                  <p className="mt-2 text-xs font-medium leading-5 text-zinc-700">
+                    {step.description}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/50 px-3.5 py-3">
+                  <span className="text-xs font-semibold text-[#063ee2]">
+                    Ready for next stage
+                  </span>
+                  <CheckCircle2 size={16} className="text-[#063ee2]" />
+                </div>
+              </div>
+            </div>
+
           </div>
-        </section>
+        );
+      })}
+    </div>
+
+  </div>
+</section>
 
         {/* Human control / comparison */}
         <section className="border-b border-zinc-100 bg-white px-6 py-24 sm:px-10 sm:py-32">

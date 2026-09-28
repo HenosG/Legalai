@@ -707,7 +707,13 @@ const Dashboard = () => {
           <div className="flex flex-wrap gap-3">
             <QuickActionPill label="CRM Engine" icon={Briefcase} onClick={() => navigate("/crm")} color="text-blue-700" bg="bg-blue-50 hover:bg-blue-100 border-blue-100" />
             <QuickActionPill label="Project Boards" icon={KanbanSquare} onClick={() => navigate("/projects")} color="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100 border-emerald-100" />
-            <QuickActionPill label="Billing & Stripe" icon={Receipt} onClick={() => navigate("/billing")} color="text-purple-700" bg="bg-purple-50 hover:bg-purple-100 border-purple-100" />
+            <QuickActionPill
+  label="Invoices"
+  icon={Receipt}
+  onClick={() => navigate("/invoices")}
+  color="text-purple-700"
+  bg="bg-purple-50 hover:bg-purple-100 border-purple-100"
+/>
             <QuickActionPill label="Analytics" icon={BarChart3} onClick={() => navigate("/analytics")} />
             <QuickActionPill label="New Proposal" icon={FileText} onClick={() => navigate("/proposals/new")} />
             <QuickActionPill label="Add Client" icon={Building2} onClick={() => navigate("/clients/new")} />

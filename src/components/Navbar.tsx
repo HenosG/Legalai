@@ -22,6 +22,7 @@ import {
   Workflow,
   Menu,
   X,
+  ArrowRight,
 } from "lucide-react";
 import { SignInButton, UserButton, useUser } from "@clerk/clerk-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -212,8 +213,9 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
 
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -225,31 +227,76 @@ export const Navbar = () => {
   }, []);
 
   return (
-    <nav
+    <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-sm py-3.5"
-          : "bg-transparent border-b border-transparent py-5"
+          ? "bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-sm"
+          : "bg-transparent border-b border-transparent"
       )}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      {/* Notification Banner */}
+      <AnimatePresence>
+        {isBannerVisible && (
+          <motion.div
+            initial={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="relative isolate flex items-center justify-center gap-x-4 overflow-hidden bg-[#063ee2] px-4 pr-10 py-2 text-center text-xs font-medium text-white"
+          >
+            <div
+              className="absolute left-[max(-7rem,calc(50%-52rem))] top-1/2 -z-10 -translate-y-1/2 transform-gpu blur-2xl"
+              aria-hidden="true"
+            >
+              <div
+                className="aspect-[577/310] w-[36.0625rem] bg-gradient-to-r from-blue-400 to-indigo-500 opacity-30"
+                style={{
+                  clipPath:
+                    "polygon(74.8% 41.9%, 97.2% 73.2%, 100% 34.9%, 92.5% 0.4%, 87.5% 0%, 75% 28.6%, 58.5% 54.6%, 50.1% 56.8%, 41.1% 43.5%, 19.1% 72.4%, 0% 45.1%, 12.7% 17.2%, 32.6% 27.2%, 50.3% 10.5%, 82.4% 25.4%, 74.8% 41.9%)",
+                }}
+              />
+            </div>
+            <span className="hidden sm:flex items-center rounded-full bg-blue-700/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-100 border border-blue-400/30">
+              New v2.0
+            </span>
+            <p className="truncate">
+              RelunoOS is live! Build a calmer operation for your client work.
+            </p>
+            <Link
+              to="/signup"
+              className="inline-flex items-center gap-1 font-bold text-white underline decoration-white/50 underline-offset-4 transition-colors hover:text-blue-100 hover:decoration-white shrink-0"
+            >
+              Get started free <ArrowRight size={12} />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsBannerVisible(false)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-blue-200 hover:text-white transition-colors rounded-md hover:bg-blue-600/50"
+              aria-label="Dismiss banner"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Nav Bar */}
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 py-3.5">
         {/* Brand Logo with Dynamic White/Blue Icon + Text */}
-<Link to="/" className="flex items-center gap-2 group">
-  <img 
-    src={scrolled ? "/1.svg" : "/1-white.svg"} 
-    alt="RelunoOS Logo" 
-    className="h-6 w-6 object-contain transition-all" 
-  />
-  <span
-    className={cn(
-      "font-sans text-xl font-bold tracking-[-0.055em] transition-colors",
-      scrolled ? "text-zinc-900" : "text-white"
-    )}
-  >
-    RELUNOOS<span className="text-blue-500">.</span>
-  </span>
-</Link>
+        <Link to="/" className="flex items-center gap-2 group">
+          <img 
+            src={scrolled ? "/1.svg" : "/1-white.svg"} 
+            alt="RelunoOS Logo" 
+            className="h-6 w-6 object-contain transition-all" 
+          />
+          <span
+            className={cn(
+              "font-sans text-xl font-bold tracking-[-0.055em] transition-colors",
+              scrolled ? "text-zinc-900" : "text-white"
+            )}
+          >
+            RELUNOOS<span className="text-blue-500">.</span>
+          </span>
+        </Link>
 
         {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center gap-1">
@@ -504,7 +551,7 @@ export const Navbar = () => {
 
         {/* Right Actions / Clerk Auth */}
         <div className="flex items-center gap-3">
-          {isLoaded && user ? (
+          {user ? (
             <div className="flex items-center gap-3">
               <Link
                 to="/dashboard"
@@ -568,7 +615,7 @@ export const Navbar = () => {
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
-      </div>
+      </nav>
 
       {/* Mobile Menu Drawer */}
       <AnimatePresence>
@@ -612,7 +659,7 @@ export const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </header>
   );
 };
 
