@@ -1,111 +1,90 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
+  CalendarDays,
   Check,
   CheckCircle2,
   CircleDollarSign,
-  ClipboardCheck,
+  CreditCard,
   FileText,
   FolderKanban,
-  MessageSquareText,
-  PenLine,
   Receipt,
   Send,
   ShieldCheck,
   Sparkles,
   Users,
+  WalletCards,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const proposalBenefits = [
-  {
-    icon: ClipboardCheck,
-    title: "Start with client context",
-    description:
-      "Use the information already captured in AI Intake and CRM instead of rebuilding the same details from scratch.",
-  },
+const invoiceBenefits = [
   {
     icon: FileText,
-    title: "Create a clear scope",
+    title: "Create from real client context",
     description:
-      "Structure services, deliverables, milestones, responsibilities, and next steps in one client-ready proposal.",
+      "Build invoices for the right client without re-entering the same business details from scratch.",
   },
   {
-    icon: CircleDollarSign,
-    title: "Present the investment",
+    icon: Receipt,
+    title: "Keep line items clear",
     description:
-      "Organize pricing, line items, optional services, and payment expectations in a clear decision document.",
-  },
-  {
-    icon: PenLine,
-    title: "Review before sending",
-    description:
-      "Edit the scope, investment, timeline, and language before any proposal reaches the client.",
-  },
-  {
-    icon: Users,
-    title: "Keep approvals connected",
-    description:
-      "Keep proposals linked to the client relationship and the project that follows when work is approved.",
+      "Add services, deliverables, quantities, rates, due dates, and client-facing notes in one focused workflow.",
   },
   {
     icon: FolderKanban,
-    title: "Move into delivery",
+    title: "Connect delivery and billing",
     description:
-      "Use an approved proposal as a clear operational starting point for projects, milestones, tasks, and invoices.",
+      "Keep invoices connected to clients, proposals, projects, and the work that created the payment request.",
+  },
+  {
+    icon: CreditCard,
+    title: "Collect online payments",
+    description:
+      "When Stripe is connected, send clients to a hosted payment experience and keep status visible in your workspace.",
+  },
+  {
+    icon: WalletCards,
+    title: "Track what is due",
+    description:
+      "See draft, open, paid, overdue, and void invoice states without leaving your operational workflow.",
+  },
+  {
+    icon: Users,
+    title: "Keep the client experience clear",
+    description:
+      "Give clients a professional payment request with the context they need to understand what they are paying for.",
   },
 ];
 
-const proposalSteps = [
+const paymentSteps = [
   {
     number: "01",
-    title: "Use the context you already have",
+    title: "Create the invoice",
     description:
-      "Bring the client, opportunity details, goals, timeline, and early project notes into a structured starting point.",
-    icon: Users,
+      "Choose the client, add services or deliverables, set the due date, and review the total.",
+    icon: Receipt,
   },
   {
     number: "02",
-    title: "Shape the scope and investment",
+    title: "Send a clear payment request",
     description:
-      "Define deliverables, responsibilities, timeline, investment, and any choices the client needs to make.",
-    icon: FileText,
+      "Finalize the invoice and use your connected payment workflow when online collection is enabled.",
+    icon: Send,
   },
   {
     number: "03",
-    title: "Review, send, and move forward",
+    title: "Track payment status",
     description:
-      "Approve the final proposal, send it to the client, and keep the approved work connected to delivery.",
-    icon: Send,
+      "Keep invoice, payment, client, and project context visible together as the payment moves forward.",
+    icon: CheckCircle2,
   },
 ];
 
-const proposalSections = [
-  {
-    title: "Discovery and planning",
-    detail:
-      "Align on the goals, audience, constraints, and technical direction before delivery begins.",
-    amount: "$1,500",
-  },
-  {
-    title: "Website design and experience",
-    detail:
-      "Create responsive website direction, content structure, and conversion-focused design decisions.",
-    amount: "$4,500",
-  },
-  {
-    title: "Launch and client handoff",
-    detail:
-      "Prepare the site, lead workflow, client access, and launch handoff for the next stage.",
-    amount: "$2,500",
-  },
-];
-
-function ProposalDemoPreview() {
+function InvoiceDemoPreview() {
   return (
     <div className="relative">
-      <div className="absolute -inset-8 rounded-[3rem] bg-indigo-300/20 blur-3xl" />
+      <div className="absolute -inset-8 rounded-[3rem] bg-blue-300/20 blur-3xl" />
 
       <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-gradient-to-br from-white/15 to-white/[0.04] p-3 shadow-[0_30px_70px_rgba(0,0,0,0.28)] backdrop-blur-sm">
         <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/20 p-3">
@@ -114,14 +93,14 @@ function ProposalDemoPreview() {
             <span className="h-2 w-2 rounded-full bg-amber-200/80" />
             <span className="h-2 w-2 rounded-full bg-emerald-200/80" />
             <span className="ml-2 text-[10px] font-medium text-blue-100/60">
-              RelunoOS proposals
+              RelunoOS invoice workspace
             </span>
           </div>
 
           <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl shadow-blue-950/10">
             <img
-              src="/proposals-demo.svg"
-              alt="RelunoOS proposal workspace preview"
+              src="/invoices-demo.svg"
+              alt="RelunoOS invoices workspace preview"
               className="block w-full object-cover"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
@@ -136,31 +115,30 @@ function ProposalDemoPreview() {
 
             <div className="hidden p-5 sm:p-6">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <FileText size={18} />
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#063ee2]">
+                    <Receipt size={18} />
                   </div>
 
                   <div>
-                    <p className="text-sm font-bold text-zinc-900">
-                      Website Redesign Proposal
+                    <p className="text-xs font-bold text-zinc-900">
+                      Invoice INV-2026-014
                     </p>
-
-                    <p className="mt-1 text-[10px] text-zinc-500">
-                      Northstar Studio · Example workspace
+                    <p className="mt-0.5 text-[10px] text-zinc-500">
+                      Northstar Studio
                     </p>
                   </div>
                 </div>
 
-                <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-700">
-                  Draft
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-700">
+                  Open
                 </span>
               </div>
 
               <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
-                    Total investment
+                    Amount due
                   </p>
 
                   <p className="text-xl font-bold tracking-tight text-zinc-900">
@@ -169,15 +147,22 @@ function ProposalDemoPreview() {
                 </div>
 
                 <div className="mt-4 space-y-3 border-t border-zinc-200 pt-4">
-                  {proposalSections.map((section) => (
+                  {[
+                    "Discovery and technical planning",
+                    "Responsive website design",
+                    "Lead capture workflow",
+                  ].map((item, index) => (
                     <div
-                      key={section.title}
+                      key={item}
                       className="flex items-center justify-between gap-4 text-[11px]"
                     >
-                      <span className="text-zinc-700">{section.title}</span>
-
+                      <span className="text-zinc-700">{item}</span>
                       <span className="font-semibold text-zinc-900">
-                        {section.amount}
+                        {index === 0
+                          ? "$1,500"
+                          : index === 1
+                          ? "$4,500"
+                          : "$2,500"}
                       </span>
                     </div>
                   ))}
@@ -187,31 +172,21 @@ function ProposalDemoPreview() {
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-zinc-200 bg-white p-3">
                   <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
-                    Client
+                    Due date
                   </p>
-
                   <p className="mt-1 text-xs font-semibold text-zinc-900">
-                    Northstar Studio
+                    Oct 28, 2026
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-zinc-200 bg-white p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
-                    Target launch
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">
+                    Payment status
                   </p>
-
-                  <p className="mt-1 text-xs font-semibold text-zinc-900">
-                    Fall campaign
+                  <p className="mt-1 text-xs font-semibold text-emerald-800">
+                    Ready to collect
                   </p>
                 </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3">
-                <span className="text-[11px] font-semibold text-emerald-800">
-                  Ready for your review
-                </span>
-
-                <CheckCircle2 size={16} className="text-emerald-600" />
               </div>
             </div>
           </div>
@@ -220,92 +195,87 @@ function ProposalDemoPreview() {
 
       <div className="absolute -left-6 top-14 hidden rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-xl backdrop-blur-md xl:block">
         <p className="text-[9px] font-bold uppercase tracking-widest text-blue-100/65">
-          Proposal state
+          Invoice state
         </p>
-
-        <p className="mt-1 text-sm font-bold text-white">Ready to review</p>
+        <p className="mt-1 text-sm font-bold text-white">Draft → paid</p>
       </div>
 
       <div className="absolute -bottom-5 -right-4 hidden rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-xl backdrop-blur-md xl:block">
         <p className="text-[9px] font-bold uppercase tracking-widest text-blue-100/65">
-          Next stage
+          Payment flow
         </p>
-
         <p className="mt-1 text-xs font-semibold text-white">
-          Approved → project
+          Stripe connected
         </p>
       </div>
     </div>
   );
 }
 
-function ProposalScopePreview() {
+function InvoiceMiniPreview() {
   return (
-    <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-[0_20px_50px_rgba(79,70,229,0.08)] sm:p-6">
+    <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-[0_20px_50px_rgba(6,62,226,0.08)] sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-            <FileText size={19} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#063ee2]">
+            <Receipt size={18} />
           </div>
 
           <div>
             <p className="text-sm font-bold text-zinc-900">
-              Project proposal
+              Client invoice
             </p>
-
             <p className="mt-1 text-[11px] text-zinc-500">
-              Example client-facing draft
+              Connected to project delivery
             </p>
           </div>
         </div>
 
-        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-zinc-600">
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-700">
           Draft
         </span>
       </div>
 
       <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
-          Scope of work
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+            Website redesign
+          </p>
+
+          <p className="text-sm font-bold text-zinc-900">$8,500 CAD</p>
+        </div>
 
         <div className="mt-4 space-y-3">
           {[
-            "Discovery and technical planning",
-            "Responsive website design",
-            "Lead capture and client portal",
-          ].map((item) => (
-            <div key={item} className="flex items-center gap-2.5">
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white">
-                <Check size={10} strokeWidth={3} />
+            "Discovery and planning",
+            "Website design",
+            "Development and launch",
+          ].map((item, index) => (
+            <div
+              key={item}
+              className="flex items-center justify-between gap-4 text-[11px]"
+            >
+              <span className="text-zinc-600">{item}</span>
+              <span className="font-semibold text-zinc-900">
+                {index === 0 ? "$1,500" : index === 1 ? "$4,500" : "$2,500"}
               </span>
-
-              <span className="text-xs text-zinc-700">{item}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="mt-4 flex items-end justify-between rounded-xl border border-zinc-200 bg-white p-3.5">
-        <div>
-          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
-            Total investment
-          </p>
-
-          <p className="mt-1 text-xl font-bold tracking-tight text-zinc-900">
-            $8,500 CAD
-          </p>
-        </div>
-
-        <span className="rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white">
-          Review & send
+      <div className="mt-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-3">
+        <span className="text-xs font-semibold text-[#063ee2]">
+          Ready to send payment request
         </span>
+
+        <Send size={16} className="text-[#063ee2]" />
       </div>
     </div>
   );
 }
 
-export default function ProposalsPlatform() {
+export default function InvoicesPlatform() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#fafafa] text-zinc-900">
       <style>{`
@@ -382,18 +352,18 @@ export default function ProposalsPlatform() {
             <div className="grid items-center gap-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
               <div className="max-w-2xl">
                 <div className="rise-in inline-flex items-center gap-2 rounded-lg border border-blue-400/40 bg-blue-600/60 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100 backdrop-blur-md">
-                  <FileText size={13} />
-                  Smart Proposals
+                  <Receipt size={13} />
+                  Invoices & Payments
                 </div>
 
                 <h1 className="rise-in rise-in-delay-1 mt-7 text-5xl font-bold leading-[0.98] tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
-                  Turn client context into a proposal worth saying yes to.
+                  Turn completed work into clear payment requests.
                 </h1>
 
                 <p className="rise-in rise-in-delay-2 mt-7 max-w-xl text-base leading-7 text-blue-100 sm:text-lg">
-                  Use the details already captured in AI Intake and CRM to
-                  create clear scopes, investment options, timelines, and next
-                  steps—without rebuilding every proposal from a blank document.
+                  Create connected invoices from the same workspace where client
+                  work is delivered. Keep client context, project details,
+                  payment status, and billing records visible in one place.
                 </p>
 
                 <div className="rise-in rise-in-delay-3 mt-9 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -409,10 +379,10 @@ export default function ProposalsPlatform() {
                   </Link>
 
                   <Link
-                    to="/platform"
+                    to="/pricing"
                     className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
                   >
-                    Explore the platform
+                    View pricing
                     <ArrowRight size={16} />
                   </Link>
                 </div>
@@ -420,18 +390,18 @@ export default function ProposalsPlatform() {
                 <div className="rise-in rise-in-delay-3 mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-blue-100/90">
                   <span className="inline-flex items-center gap-2">
                     <Check size={14} className="text-blue-200" />
-                    Edit scope before sending
+                    Keep delivery and billing connected
                   </span>
 
                   <span className="inline-flex items-center gap-2">
                     <Check size={14} className="text-blue-200" />
-                    Keep proposals connected to delivery
+                    Clear payment status in one workspace
                   </span>
                 </div>
               </div>
 
               <div className="rise-in rise-in-delay-2 relative mx-auto w-full max-w-3xl lg:max-w-none">
-                <ProposalDemoPreview />
+                <InvoiceDemoPreview />
               </div>
             </div>
           </div>
@@ -441,7 +411,7 @@ export default function ProposalsPlatform() {
         <section className="border-b border-zinc-100 bg-white py-7">
           <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 px-6 sm:px-10 lg:flex-row lg:justify-between">
             <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 lg:text-left">
-              The decision stage of your connected client workflow
+              The payment stage of a connected client workflow
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs font-semibold text-zinc-600">
@@ -452,12 +422,10 @@ export default function ProposalsPlatform() {
                 "Proposal",
                 "Project",
                 "Invoice",
-                "Client Portal",
+                "Payment",
               ].map((step, index, items) => (
                 <div key={step} className="flex items-center gap-3">
-                  <span
-                    className={step === "Proposal" ? "text-[#063ee2]" : ""}
-                  >
+                  <span className={step === "Invoice" ? "text-[#063ee2]" : ""}>
                     {step}
                   </span>
 
@@ -475,27 +443,28 @@ export default function ProposalsPlatform() {
           <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
-                From context to commitment
+                Billing without disconnects
               </p>
 
               <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
-                Your proposal should not begin with a blank document.
+                Payment should not become a separate disconnected process.
               </h2>
 
               <p className="mt-6 max-w-xl text-base leading-7 text-zinc-500">
-                By the time a client is ready for a proposal, your team has
-                already learned important details about their goals, timeline,
-                requirements, constraints, and decision process.
+                When an agency finishes work, payment often moves into another
+                spreadsheet, invoicing tool, inbox thread, or manual follow-up
+                process. The project context gets lost just when the client
+                needs a clear next step.
               </p>
 
               <p className="mt-5 max-w-xl text-base leading-7 text-zinc-500">
-                RelunoOS helps bring that information into a clearer proposal
-                starting point, so your team can spend more energy shaping the
-                right scope and less time recreating context.
+                RelunoOS keeps invoices connected to the clients, proposals,
+                projects, and deliverables that created them—so the payment
+                request has context and your team can see what is still due.
               </p>
             </div>
 
-            <ProposalScopePreview />
+            <InvoiceMiniPreview />
           </div>
         </section>
 
@@ -504,23 +473,22 @@ export default function ProposalsPlatform() {
           <div className="mx-auto max-w-7xl">
             <div className="max-w-2xl">
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
-                Proposal workflow
+                Built for client payment workflows
               </p>
 
               <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
-                Make the decision easier for the client and the team.
+                Give completed work a clear path to payment.
               </h2>
 
               <p className="mt-5 text-base leading-7 text-zinc-500">
-                A strong proposal gives a client a clear picture of the
-                recommended work, investment, timing, responsibilities, and
-                next step. RelunoOS helps keep that decision document connected
-                to the relationship and the delivery work that follows.
+                Invoices & Payments brings the billing stage into the same
+                operating system as client relationships, proposals, projects,
+                and delivery.
               </p>
             </div>
 
             <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-200 sm:grid-cols-2 lg:grid-cols-3">
-              {proposalBenefits.map((benefit) => {
+              {invoiceBenefits.map((benefit) => {
                 const Icon = benefit.icon;
 
                 return (
@@ -546,21 +514,21 @@ export default function ProposalsPlatform() {
           </div>
         </section>
 
-        {/* How it works */}
+        {/* Payment workflow */}
         <section className="border-y border-zinc-100 bg-[#f5f7ff] px-6 py-24 sm:px-10 sm:py-32">
           <div className="mx-auto max-w-7xl">
             <div className="max-w-2xl">
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
-                How proposals work
+                How it works
               </p>
 
               <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
-                Move from client context to a clear decision.
+                From finished work to a clear next step.
               </h2>
             </div>
 
             <div className="mt-14 grid gap-5 lg:grid-cols-3">
-              {proposalSteps.map((step) => {
+              {paymentSteps.map((step) => {
                 const Icon = step.icon;
 
                 return (
@@ -590,30 +558,36 @@ export default function ProposalsPlatform() {
           </div>
         </section>
 
-        {/* Human control */}
+        {/* Stripe */}
         <section className="bg-white px-6 py-24 sm:px-10 sm:py-32">
           <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#063ee2]">
-                Review before sending
+                Online payment collection
               </p>
 
               <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
-                AI can help create the starting point. You own the final proposal.
+                Connect Stripe when you are ready to collect online.
               </h2>
 
               <p className="mt-6 max-w-xl text-base leading-7 text-zinc-500">
-                A proposal is a commitment about scope, investment, timing, and
-                expectations. RelunoOS can help organize the context and create
-                a first draft, but your team reviews, edits, approves, and
-                controls every important client-facing detail.
+                When your workspace has a connected Stripe account, RelunoOS
+                can support a clearer client payment workflow through hosted
+                payment collection and connected invoice status.
+              </p>
+
+              <p className="mt-5 max-w-xl text-base leading-7 text-zinc-500">
+                Stripe processing fees are separate from RelunoOS subscription
+                charges and any applicable RelunoOS platform fees. Your
+                workspace should show relevant payment terms before online
+                collection is enabled.
               </p>
 
               <Link
-                to="/security"
+                to="/pricing"
                 className="group mt-8 inline-flex items-center gap-2 text-sm font-bold text-[#063ee2] transition-colors hover:text-blue-800"
               >
-                Learn about security and privacy
+                Review pricing and fees
                 <ArrowRight
                   size={15}
                   className="transition-transform group-hover:translate-x-1"
@@ -623,72 +597,43 @@ export default function ProposalsPlatform() {
 
             <div className="rounded-[2rem] bg-gradient-to-br from-[#063ee2] via-blue-700 to-indigo-950 p-6 shadow-2xl shadow-blue-950/15 sm:p-9">
               <div className="rounded-3xl border border-white/20 bg-white p-6 shadow-xl sm:p-8">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                      <FileText size={18} />
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-bold text-zinc-900">
-                        Proposal review
-                      </p>
-
-                      <p className="mt-1 text-[11px] text-zinc-500">
-                        Human approval required
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-700">
-                    Draft
-                  </span>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#063ee2]">
+                  <CreditCard size={21} />
                 </div>
 
-                <div className="mt-6 space-y-3">
+                <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
+                  Connected payment workflow
+                </p>
+
+                <p className="mt-4 text-2xl font-bold leading-[1.12] tracking-[-0.035em] text-zinc-900 sm:text-3xl">
+                  Create the invoice, send a clear payment request, and keep
+                  the status connected to your client workspace.
+                </p>
+
+                <div className="mt-8 space-y-3 border-t border-zinc-100 pt-6">
                   {[
-                    "Review scope and deliverables",
-                    "Edit investment and payment terms",
-                    "Confirm timeline and responsibilities",
-                    "Approve before client delivery",
+                    "Connected Stripe account",
+                    "Hosted client payment experience",
+                    "Invoice and payment status in one workspace",
                   ].map((item) => (
                     <div
                       key={item}
-                      className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-3"
+                      className="flex items-center gap-3 text-sm text-zinc-700"
                     >
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">
                         <Check size={11} strokeWidth={3} />
                       </span>
 
-                      <span className="text-xs font-semibold text-zinc-700">
-                        {item}
-                      </span>
+                      {item}
                     </div>
                   ))}
-                </div>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-xs font-bold text-white"
-                  >
-                    Review proposal
-                    <ArrowRight size={14} />
-                  </button>
-
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-xs font-bold text-zinc-700"
-                  >
-                    Edit draft
-                  </button>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Connected workflow */}
+        {/* Workflow rail */}
         <section className="border-y border-zinc-100 bg-[#f5f7ff] px-6 py-24 sm:px-10 sm:py-32">
           <div className="mx-auto max-w-7xl">
             <div className="max-w-2xl">
@@ -697,14 +642,13 @@ export default function ProposalsPlatform() {
               </p>
 
               <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-zinc-900 sm:text-5xl">
-                The approved proposal becomes a clearer starting point for delivery.
+                Payment context should stay with the work.
               </h2>
 
               <p className="mt-5 text-base leading-7 text-zinc-500">
-                When a client agrees to move forward, the scope, investment,
-                timeline, and relationship context should remain connected as
-                your team creates the project, manages delivery, and sends an
-                invoice.
+                Invoices are not an isolated finance task. They are the next
+                step after a client accepts a proposal and your team delivers
+                the work.
               </p>
             </div>
 
@@ -713,13 +657,13 @@ export default function ProposalsPlatform() {
                 { label: "Inquiry", href: "/platform" },
                 { label: "AI Intake", href: "/platform/ai-intake" },
                 { label: "CRM", href: "/platform/crm" },
+                { label: "Proposal", href: "/platform/proposals" },
+                { label: "Project", href: "/platform/projects" },
                 {
-                  label: "Proposal",
-                  href: "/platform/proposals",
+                  label: "Invoice",
+                  href: "/platform/invoices",
                   active: true,
                 },
-                { label: "Project", href: "/platform/projects" },
-                { label: "Invoice", href: "/platform/invoices" },
                 { label: "Client Portal", href: "/platform/client-portal" },
               ].map((step, index, items) => (
                 <div key={step.label} className="flex items-center gap-3">
@@ -754,17 +698,16 @@ export default function ProposalsPlatform() {
 
           <div className="relative mx-auto max-w-3xl text-center">
             <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-blue-100">
-              Propose with clarity
+              Invoice with clarity
             </p>
 
             <h2 className="mt-5 text-4xl font-bold leading-[1.02] tracking-[-0.045em] sm:text-5xl">
-              Give every client a clearer decision to make.
+              Give completed work a clear path to payment.
             </h2>
 
             <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-blue-100">
-              Build client-ready scopes, investment details, and next steps
-              from the context your team already has—then move approved work
-              into delivery with less friction.
+              Keep client context, project delivery, invoices, and payment
+              status connected in one RelunoOS workspace.
             </p>
 
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -780,10 +723,10 @@ export default function ProposalsPlatform() {
               </Link>
 
               <Link
-                to="/pricing"
+                to="/contact"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
               >
-                See pricing
+                Talk to us
                 <ArrowRight size={16} />
               </Link>
             </div>

@@ -33,6 +33,7 @@ import AIIntakePlatform from "./pages/public/AIIntakePlatform";
 import CRMPlatform from "./pages/public/CRMPlatform";
 import ProposalsPlatform from "./pages/public/ProposalsPlatform";
 import ProjectsPlatform from "./pages/public/ProjectsPlatform";
+import InvoicesPlatform from "./pages/public/InvoicesPlatform";
 import ClientPortalPlatform from "./pages/public/ClientPortalPlatform";
 
 import Agencies from "./pages/public/Agencies";
@@ -234,13 +235,19 @@ const App = () => (
                   element={<ProposalsPlatform />}
                 />
                 <Route
-                  path="/platform/projects"
-                  element={<ProjectsPlatform />}
-                />
-                <Route
-                  path="/platform/client-portal"
-                  element={<ClientPortalPlatform />}
-                />
+  path="/platform/projects"
+  element={<ProjectsPlatform />}
+/>
+
+<Route
+  path="/platform/invoices"
+  element={<InvoicesPlatform />}
+/>
+
+<Route
+  path="/platform/client-portal"
+  element={<ClientPortalPlatform />}
+/>
 
                 {/* Solutions */}
                 <Route path="/solutions/agencies" element={<Agencies />} />
