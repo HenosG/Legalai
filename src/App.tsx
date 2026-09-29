@@ -28,6 +28,8 @@ import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
 import Support from "./pages/company/Support";
 
+// ─── Public Platform Pages ────────────────────────────────────────────────────
+
 import Platform from "./pages/public/Platform";
 import AIIntakePlatform from "./pages/public/AIIntakePlatform";
 import CRMPlatform from "./pages/public/CRMPlatform";
@@ -36,20 +38,35 @@ import ProjectsPlatform from "./pages/public/ProjectsPlatform";
 import InvoicesPlatform from "./pages/public/InvoicesPlatform";
 import ClientPortalPlatform from "./pages/public/ClientPortalPlatform";
 
+// ─── Public Solution Pages ────────────────────────────────────────────────────
+
 import Agencies from "./pages/public/Agencies";
 import Freelancers from "./pages/public/Freelancers";
 import CreativeAgencies from "./pages/public/CreativeAgencies";
 import MarketingAgencies from "./pages/public/MarketingAgencies";
 import DevelopmentAgencies from "./pages/public/DevelopmentAgencies";
 
+// ─── Public Company Pages ─────────────────────────────────────────────────────
+
 import About from "./pages/public/About";
 import Security from "./pages/public/Security";
 import Integrations from "./pages/public/Integrations";
+
+// ─── Public Resource Pages ────────────────────────────────────────────────────
 
 import Blog from "./pages/public/Blog";
 import Guides from "./pages/public/Guides";
 import Templates from "./pages/public/Templates";
 import Changelog from "./pages/public/Changelog";
+
+import ClientWorkflowArticle from "./pages/public/blog/ClientWorkflowArticle";
+import RelunoVsHoneyBook from "./pages/public/blog/RelunoVsHoneyBook";
+import RelunoVsDubsado from "./pages/public/blog/RelunoVsDubsado";
+import RelunoVsBonsai from "./pages/public/blog/RelunoVsBonsai";
+import ProposalProjectHandoffArticle from "./pages/public/blog/ProposalProjectHandoffArticle";
+import ClientPortalArticle from "./pages/public/blog/ClientPortalArticle";
+
+// ─── Public Legal and Trust Pages ─────────────────────────────────────────────
 
 import Privacy from "./pages/public/Privacy";
 import Terms from "./pages/public/Terms";
@@ -57,7 +74,7 @@ import AcceptableUse from "./pages/public/AcceptableUse";
 import Subprocessors from "./pages/public/Subprocessors";
 import Status from "./pages/public/Status";
 
-// ─── Authenticated RelunoOS Pages ────────────────────────────────────────────
+// ─── Authenticated RelunoOS Pages ─────────────────────────────────────────────
 
 import Dashboard from "./pages/Dashboard";
 
@@ -223,7 +240,7 @@ const App = () => (
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/support" element={<Support />} />
 
-                {/* Platform */}
+                {/* Platform Overview and Platform Modules */}
                 <Route path="/platform" element={<Platform />} />
                 <Route
                   path="/platform/ai-intake"
@@ -235,19 +252,17 @@ const App = () => (
                   element={<ProposalsPlatform />}
                 />
                 <Route
-  path="/platform/projects"
-  element={<ProjectsPlatform />}
-/>
-
-<Route
-  path="/platform/invoices"
-  element={<InvoicesPlatform />}
-/>
-
-<Route
-  path="/platform/client-portal"
-  element={<ClientPortalPlatform />}
-/>
+                  path="/platform/projects"
+                  element={<ProjectsPlatform />}
+                />
+                <Route
+                  path="/platform/invoices"
+                  element={<InvoicesPlatform />}
+                />
+                <Route
+                  path="/platform/client-portal"
+                  element={<ClientPortalPlatform />}
+                />
 
                 {/* Solutions */}
                 <Route path="/solutions/agencies" element={<Agencies />} />
@@ -268,8 +283,39 @@ const App = () => (
                   element={<DevelopmentAgencies />}
                 />
 
-                {/* Resources */}
+                {/* Blog and Resources */}
                 <Route path="/blog" element={<Blog />} />
+
+                <Route
+                  path="/blog/client-workflow-from-inquiry-to-payment"
+                  element={<ClientWorkflowArticle />}
+                />
+
+                <Route
+                  path="/blog/relunoos-vs-honeybook"
+                  element={<RelunoVsHoneyBook />}
+                />
+
+                <Route
+                  path="/blog/relunoos-vs-dubsado"
+                  element={<RelunoVsDubsado />}
+                />
+
+                <Route
+                  path="/blog/relunoos-vs-bonsai"
+                  element={<RelunoVsBonsai />}
+                />
+
+                <Route
+                  path="/blog/proposal-to-project-handoff"
+                  element={<ProposalProjectHandoffArticle />}
+                />
+
+                <Route
+                  path="/blog/client-portal-for-agencies"
+                  element={<ClientPortalArticle />}
+                />
+
                 <Route path="/guides" element={<Guides />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/changelog" element={<Changelog />} />
@@ -279,7 +325,7 @@ const App = () => (
                 <Route path="/security" element={<Security />} />
                 <Route path="/integrations" element={<Integrations />} />
 
-                {/* Legal and trust */}
+                {/* Legal and Trust */}
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route
@@ -295,7 +341,7 @@ const App = () => (
                 {/* Dashboard */}
                 <Route path="/dashboard" element={<Dashboard />} />
 
-                {/* CRM and client detail */}
+                {/* CRM and Clients */}
                 <Route path="/crm" element={<CRM />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
 
@@ -354,7 +400,7 @@ const App = () => (
                   element={<IntegrationSettings />}
                 />
 
-                {/* Existing or upcoming authenticated modules */}
+                {/* Existing and upcoming authenticated modules */}
                 <Route path="/tasks" element={<TempPlaceholder />} />
                 <Route path="/calendar" element={<TempPlaceholder />} />
                 <Route path="/analytics" element={<TempPlaceholder />} />
@@ -367,7 +413,6 @@ const App = () => (
                 element={<Navigate to="/dashboard" replace />}
               />
 
-              {/* Legacy billing links now go to Invoices */}
               <Route
                 path="/billing"
                 element={<Navigate to="/invoices" replace />}
@@ -378,27 +423,32 @@ const App = () => (
                 element={<Navigate to="/settings/billing" replace />}
               />
 
-              {/* ── Old Reluno Legal Redirects ─────────────────────────── */}
+              {/* ── Legacy Reluno Legal Redirects ──────────────────────── */}
               <Route
                 path="/legalquestionai"
                 element={<Navigate to="/platform/ai-intake" replace />}
               />
+
               <Route
                 path="/documentgenerator"
                 element={<Navigate to="/platform/proposals" replace />}
               />
+
               <Route
                 path="/claimtracker"
                 element={<Navigate to="/platform/projects" replace />}
               />
+
               <Route
                 path="/workflowautomation"
                 element={<Navigate to="/platform" replace />}
               />
+
               <Route
                 path="/matters"
                 element={<Navigate to="/platform/projects" replace />}
               />
+
               <Route
                 path="/export-archive"
                 element={<Navigate to="/platform" replace />}

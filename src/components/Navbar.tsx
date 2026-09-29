@@ -1,29 +1,30 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
+  ArrowRight,
   Bell,
   BookOpen,
   BriefcaseBusiness,
   Building2,
   ChevronDown,
+  Code2,
   FileText,
   FolderKanban,
   Globe2,
   HelpCircle,
-  LayoutDashboard,
   Lightbulb,
   MessageSquare,
+  Menu,
+  Palette,
   PlugZap,
   Receipt,
   ShieldCheck,
   Sparkles,
+  Target,
   Users,
   UsersRound,
-  WandSparkles,
   Workflow,
-  Menu,
   X,
-  ArrowRight,
 } from "lucide-react";
 import { SignInButton, UserButton, useUser } from "@clerk/clerk-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -35,7 +36,6 @@ interface MegaMenuItem {
   icon: React.ElementType;
   description: string;
   badge?: string;
-  color?: string;
 }
 
 const platformItems: MegaMenuItem[] = [
@@ -43,45 +43,39 @@ const platformItems: MegaMenuItem[] = [
     name: "AI Intake",
     href: "/platform/ai-intake",
     icon: Sparkles,
-    description: "Turn raw inquiries into qualified, structured leads instantly.",
-    badge: "AI-Powered",
-    color: "text-blue-600",
+    description: "Turn raw inquiries into structured opportunities.",
+    badge: "AI-powered",
   },
   {
     name: "CRM & Contacts",
     href: "/platform/crm",
     icon: Users,
-    description: "Keep clients, notes, opportunities, and history organized.",
-    color: "text-violet-600",
+    description: "Keep clients, notes, opportunities, and history connected.",
   },
   {
     name: "Proposals",
     href: "/platform/proposals",
     icon: FileText,
-    description: "Create polished scopes, pricing, and sign-off agreements.",
-    color: "text-emerald-600",
-  },
-  {
-    name: "Invoices & Billing",
-    href: "/platform/invoices",
-    icon: Receipt,
-    description: "Bill clients, track payments, and automate Stripe receipts.",
-    color: "text-cyan-600",
+    description: "Create polished scopes, pricing, and approval workflows.",
   },
   {
     name: "Projects & Delivery",
     href: "/platform/projects",
     icon: FolderKanban,
-    description: "Manage delivery with milestones, tasks, and deadlines.",
-    color: "text-amber-600",
+    description: "Manage milestones, tasks, priorities, and deadlines.",
+  },
+  {
+    name: "Invoices & Payments",
+    href: "/platform/invoices",
+    icon: Receipt,
+    description: "Create invoices, track payment status, and collect online.",
   },
   {
     name: "Client Portal",
     href: "/platform/client-portal",
     icon: Globe2,
-    description: "Give clients a secure, branded view of approved work.",
+    description: "Give clients a clear view of approved work and progress.",
     badge: "Popular",
-    color: "text-rose-600",
   },
 ];
 
@@ -90,75 +84,65 @@ const solutionItems: MegaMenuItem[] = [
     name: "Agencies",
     href: "/solutions/agencies",
     icon: Building2,
-    description: "Bring leads, proposals, delivery, and billing together.",
-    color: "text-blue-600",
+    description: "Bring leads, delivery, billing, and client visibility together.",
   },
   {
     name: "Freelancers",
     href: "/solutions/freelancers",
     icon: BriefcaseBusiness,
     description: "Replace scattered admin tools with one focused workspace.",
-    color: "text-violet-600",
   },
   {
     name: "Creative Teams",
     href: "/solutions/creative-agencies",
-    icon: WandSparkles,
-    description: "Organize discovery, client approvals, and asset delivery.",
-    color: "text-pink-600",
+    icon: Palette,
+    description: "Organize briefs, approvals, production, and delivery.",
   },
   {
     name: "Marketing Agencies",
     href: "/solutions/marketing-agencies",
-    icon: Workflow,
-    description: "Manage retainers, campaign work, timelines, and reporting.",
-    color: "text-orange-600",
+    icon: Target,
+    description: "Manage campaigns, retainers, timelines, and account context.",
   },
   {
     name: "Development Agencies",
     href: "/solutions/development-agencies",
-    icon: LayoutDashboard,
-    description: "Move from client inquiry to deployment milestones cleanly.",
-    color: "text-teal-600",
+    icon: Code2,
+    description: "Move from discovery and scope to milestones and launch.",
   },
 ];
 
 const resourceItems: MegaMenuItem[] = [
   {
-    name: "Blog & GEO Insights",
+    name: "Blog",
     href: "/blog",
     icon: BookOpen,
-    description: "Deep dives on modern agency operations and AI workflows.",
-    color: "text-blue-600",
+    description: "Workflow guides, comparisons, and agency operations insights.",
+    badge: "New",
   },
   {
     name: "Guides",
     href: "/guides",
     icon: Lightbulb,
-    description: "Practical playbooks for scaling client communication.",
-    color: "text-amber-600",
+    description: "Practical playbooks for calmer client operations.",
   },
   {
     name: "Templates",
     href: "/templates",
     icon: FileText,
-    description: "Ready-to-use proposal, scope, and onboarding templates.",
-    color: "text-emerald-600",
+    description: "Proposal, onboarding, scope, and delivery starting points.",
   },
   {
     name: "Changelog",
     href: "/changelog",
     icon: Bell,
-    description: "Track the latest platform updates and feature releases.",
-    badge: "v2.0",
-    color: "text-violet-600",
+    description: "Follow product updates and new RelunoOS capabilities.",
   },
   {
     name: "Help Center",
     href: "/support",
     icon: HelpCircle,
-    description: "Documentation and setup assistance for your workspace.",
-    color: "text-zinc-600",
+    description: "Find setup guidance and answers for your workspace.",
   },
 ];
 
@@ -167,31 +151,208 @@ const companyItems: MegaMenuItem[] = [
     name: "About RelunoOS",
     href: "/about",
     icon: UsersRound,
-    description: "Our mission to build calmer operating systems for independents.",
-    color: "text-blue-600",
+    description: "Learn why we are building a calmer client operating system.",
   },
   {
-    name: "Security & Trust",
+    name: "Security & Privacy",
     href: "/security",
     icon: ShieldCheck,
-    description: "Data encryption, Clerk auth, and Stripe payment safety.",
-    color: "text-emerald-600",
+    description: "Understand our approach to access, privacy, and trust.",
   },
   {
     name: "Integrations",
     href: "/integrations",
     icon: PlugZap,
-    description: "Explore Neon database, Resend, and Stripe connectivity.",
-    color: "text-amber-600",
+    description: "Explore the systems that connect to RelunoOS.",
   },
   {
-    name: "Contact Support",
+    name: "Contact",
     href: "/contact",
     icon: MessageSquare,
-    description: "Get in touch directly with our engineering team.",
-    color: "text-violet-600",
+    description: "Ask a product, pricing, support, or security question.",
   },
 ];
+
+function MenuItem({
+  item,
+  onClick,
+}: {
+  item: MegaMenuItem;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      to={item.href}
+      onClick={onClick}
+      className="group flex items-start gap-3 rounded-xl border border-transparent p-3 transition-all hover:border-zinc-200/80 hover:bg-zinc-50"
+    >
+      <div className="flex h-9 w-8 shrink-0 items-center justify-center text-zinc-900 transition-colors group-hover:text-[#063ee2]">
+        <Icon size={18} strokeWidth={1.9} />
+      </div>
+
+      <div className="min-w-0 space-y-1">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-bold text-zinc-900 transition-colors group-hover:text-[#063ee2]">
+            {item.name}
+          </p>
+
+          {item.badge && (
+            <span className="rounded-full border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-blue-700">
+              {item.badge}
+            </span>
+          )}
+        </div>
+
+        <p className="line-clamp-2 text-[11px] leading-4 text-zinc-500">
+          {item.description}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+function MegaMenu({
+  type,
+  items,
+  onClose,
+}: {
+  type: "platform" | "solutions" | "resources" | "company";
+  items: MegaMenuItem[];
+  onClose: () => void;
+}) {
+  const isPlatform = type === "platform";
+  const isSolutions = type === "solutions";
+  const isResources = type === "resources";
+
+  const menuTitle = isPlatform
+    ? "One connected workflow"
+    : isSolutions
+    ? "Built around your kind of work"
+    : isResources
+    ? "Learn and improve"
+    : "Get to know RelunoOS";
+
+  const menuDescription = isPlatform
+    ? "Move from inquiry to client context, proposal, delivery, invoice, payment, and portal visibility."
+    : isSolutions
+    ? "Explore how RelunoOS fits agencies, freelancers, creative teams, marketing teams, and developers."
+    : isResources
+    ? "Practical resources for building calmer client operations."
+    : "Learn about RelunoOS, security, integrations, and support.";
+
+  const featuredHref = isPlatform
+    ? "/platform"
+    : isSolutions
+    ? "/solutions/agencies"
+    : isResources
+    ? "/blog"
+    : "/about";
+
+  const featuredLabel = isPlatform
+    ? "Explore the platform"
+    : isSolutions
+    ? "Explore solutions"
+    : isResources
+    ? "Read the latest resources"
+    : "About RelunoOS";
+
+  const FeaturedIcon = isPlatform
+    ? Workflow
+    : isSolutions
+    ? BriefcaseBusiness
+    : isResources
+    ? BookOpen
+    : Sparkles;
+
+  const featuredTitle = isPlatform
+    ? "Run the whole client workflow in one place."
+    : isSolutions
+    ? "Find the workflow that fits your business."
+    : isResources
+    ? "Learn how to make client work calmer."
+    : "Build client operations with clarity.";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 8, scale: 0.985 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+      className={cn(
+        "absolute top-full mt-2 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.14)] ring-1 ring-black/5",
+        isPlatform ? "left-1/2 w-[720px] -translate-x-1/2" : "right-0 w-[680px]"
+      )}
+    >
+      <div className="grid grid-cols-[1fr_210px] gap-4">
+        <div>
+          <div className="mb-3 border-b border-zinc-100 px-2 pb-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+              {menuTitle}
+            </p>
+
+            <p className="mt-1 text-xs leading-5 text-zinc-500">
+              {menuDescription}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1">
+            {items.map((item) => (
+              <MenuItem key={item.name} item={item} onClick={onClose} />
+            ))}
+          </div>
+
+          <div className="mt-3 border-t border-zinc-100 px-2 pt-3">
+            <Link
+              to={featuredHref}
+              onClick={onClose}
+              className="group inline-flex items-center gap-2 text-[11px] font-bold text-[#063ee2] transition-colors hover:text-blue-800"
+            >
+              {featuredLabel}
+              <ArrowRight
+                size={13}
+                className="transition-transform group-hover:translate-x-1"
+              />
+            </Link>
+          </div>
+        </div>
+
+        <Link
+          to={featuredHref}
+          onClick={onClose}
+          className="group relative overflow-hidden rounded-xl bg-[#063ee2] p-5 text-white"
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:24px_24px]" />
+
+          <div className="relative flex h-full flex-col justify-between">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10">
+              <FeaturedIcon size={18} />
+            </div>
+
+            <div className="mt-10">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100">
+                RelunoOS
+              </p>
+
+              <p className="mt-2 text-lg font-bold leading-tight tracking-[-0.03em]">
+                {featuredTitle}
+              </p>
+
+              <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-white">
+                Explore
+                <ArrowRight
+                  size={14}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </span>
+            </div>
+          </div>
+        </Link>
+      </div>
+    </motion.div>
+  );
+}
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -205,44 +366,69 @@ export const Navbar = () => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
+
     handleScroll();
     window.addEventListener("scroll", handleScroll);
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const closeMenus = () => {
+    setActiveDropdown(null);
+    setMobileMenuOpen(false);
+  };
+
+  const isMenuOpen = (name: string) => activeDropdown === name;
+
+  const navButtonClass = cn(
+    "flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all",
+    scrolled
+      ? "text-zinc-700 hover:bg-zinc-100/80 hover:text-zinc-900"
+      : "text-white hover:bg-white/15 hover:text-white"
+  );
+
+  const chevronClass = cn(
+    "transition-transform duration-200",
+    scrolled ? "text-zinc-400" : "text-white/70"
+  );
 
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        "fixed left-0 right-0 top-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-xs"
-          : "bg-transparent border-b border-transparent"
+          ? "border-b border-zinc-200/80 bg-white/95 shadow-sm backdrop-blur-md"
+          : "border-b border-transparent bg-transparent"
       )}
     >
-      {/* Notification Banner */}
+      {/* Notification banner */}
       <AnimatePresence>
         {isBannerVisible && (
           <motion.div
             initial={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="relative isolate flex items-center justify-center gap-x-4 overflow-hidden bg-blue-600 px-4 pr-10 py-2 text-center text-xs font-medium text-white shadow-xs"
+            className="relative isolate flex items-center justify-center gap-x-4 overflow-hidden bg-blue-600 px-4 py-2 pr-10 text-center text-xs font-medium text-white shadow-sm"
           >
-            <span className="hidden sm:flex items-center rounded-full bg-blue-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-100 border border-blue-400/30">
+            <span className="hidden items-center rounded-full border border-blue-400/30 bg-blue-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-100 sm:flex">
               v2.0 Live
             </span>
+
             <p className="truncate">
-              RelunoOS is live! Build a calmer operation for your client work.
+              RelunoOS is live. Build a calmer operation for your client work.
             </p>
+
             <Link
               to="/signup"
-              className="inline-flex items-center gap-1 font-bold text-white underline decoration-white/50 underline-offset-4 transition-colors hover:text-blue-100 hover:decoration-white shrink-0"
+              className="inline-flex shrink-0 items-center gap-1 font-bold text-white underline decoration-white/50 underline-offset-4 transition-colors hover:text-blue-100 hover:decoration-white"
             >
-              Get started free <ArrowRight size={12} />
+              Get started free
+              <ArrowRight size={12} />
             </Link>
+
             <button
               type="button"
               onClick={() => setIsBannerVisible(false)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-blue-200 hover:text-white transition-colors rounded-md hover:bg-blue-700/50"
+              className="absolute right-2 top-1/2 rounded-md p-1 text-blue-200 transition-colors hover:bg-blue-700/50 hover:text-white"
               aria-label="Dismiss banner"
             >
               <X size={14} />
@@ -251,18 +437,19 @@ export const Navbar = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Nav Bar */}
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 py-3.5">
-        {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
-          <img 
-            src={scrolled ? "/1.svg" : "/1-white.svg"} 
-            alt="RelunoOS Logo" 
-            className="h-6 w-6 object-contain transition-all" 
+      {/* Main navigation */}
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+        {/* Brand */}
+        <Link to="/" className="group flex items-center gap-2">
+          <img
+            src={scrolled ? "/1.svg" : "/1-white.svg"}
+            alt="RelunoOS logo"
+            className="h-6 w-6 object-contain transition-all"
           />
+
           <span
             className={cn(
-              "font-sans text-xl font-bold tracking-[-0.055em] transition-colors",
+              "text-xl font-bold tracking-[-0.055em] transition-colors",
               scrolled ? "text-zinc-900" : "text-white"
             )}
           >
@@ -270,278 +457,141 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <div className="hidden md:flex items-center gap-1">
-          {/* Platform Dropdown */}
+        {/* Desktop navigation */}
+        <div className="hidden items-center gap-1 md:flex">
+          {/* Platform */}
           <div
             className="relative"
             onMouseEnter={() => setActiveDropdown("platform")}
             onMouseLeave={() => setActiveDropdown(null)}
           >
-            <button
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-all rounded-lg",
-                scrolled
-                  ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100/80"
-                  : "text-white hover:text-white hover:bg-white/15"
-              )}
-            >
-              Platform{" "}
+            <Link to="/platform" className={navButtonClass}>
+              Platform
               <ChevronDown
                 size={13}
-                className={cn("transition-transform duration-200", activeDropdown === "platform" ? "rotate-180" : "", scrolled ? "text-zinc-400" : "text-white/70")}
+                className={cn(
+                  chevronClass,
+                  isMenuOpen("platform") && "rotate-180"
+                )}
               />
-            </button>
+            </Link>
+
             <AnimatePresence>
-              {activeDropdown === "platform" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[600px] rounded-2xl bg-white p-5 shadow-2xl border border-zinc-200/80 grid grid-cols-2 gap-2.5 ring-1 ring-black/5"
-                >
-                  {platformItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        onClick={() => setActiveDropdown(null)}
-                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-zinc-50/80 transition-all border border-transparent hover:border-zinc-200/60 group"
-                      >
-                        <div className="shrink-0 pt-0.5">
-                          <Icon size={18} strokeWidth={2.5} className={item.color} />
-                        </div>
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
-                              {item.name}
-                            </p>
-                            {item.badge && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/50">
-                                {item.badge}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">
-                            {item.description}
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </motion.div>
+              {isMenuOpen("platform") && (
+                <MegaMenu
+                  type="platform"
+                  items={platformItems}
+                  onClose={closeMenus}
+                />
               )}
             </AnimatePresence>
           </div>
 
-          {/* Solutions Dropdown */}
+          {/* Solutions */}
           <div
             className="relative"
             onMouseEnter={() => setActiveDropdown("solutions")}
             onMouseLeave={() => setActiveDropdown(null)}
           >
-            <button
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-all rounded-lg",
-                scrolled
-                  ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100/80"
-                  : "text-white hover:text-white hover:bg-white/15"
-              )}
-            >
-              Solutions{" "}
+            <button type="button" className={navButtonClass}>
+              Solutions
               <ChevronDown
                 size={13}
-                className={cn("transition-transform duration-200", activeDropdown === "solutions" ? "rotate-180" : "", scrolled ? "text-zinc-400" : "text-white/70")}
+                className={cn(
+                  chevronClass,
+                  isMenuOpen("solutions") && "rotate-180"
+                )}
               />
             </button>
+
             <AnimatePresence>
-              {activeDropdown === "solutions" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[600px] rounded-2xl bg-white p-5 shadow-2xl border border-zinc-200/80 grid grid-cols-2 gap-2.5 ring-1 ring-black/5"
-                >
-                  {solutionItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        onClick={() => setActiveDropdown(null)}
-                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-zinc-50/80 transition-all border border-transparent hover:border-zinc-200/60 group"
-                      >
-                        <div className="shrink-0 pt-0.5">
-                          <Icon size={18} strokeWidth={2.5} className={item.color} />
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-xs font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
-                            {item.name}
-                          </p>
-                          <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">
-                            {item.description}
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </motion.div>
+              {isMenuOpen("solutions") && (
+                <MegaMenu
+                  type="solutions"
+                  items={solutionItems}
+                  onClose={closeMenus}
+                />
               )}
             </AnimatePresence>
           </div>
 
-          <Link
-            to="/pricing"
-            className={cn(
-              "px-3.5 py-2 text-xs font-semibold transition-all rounded-lg",
-              scrolled
-                ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100/80"
-                : "text-white hover:text-white hover:bg-white/15"
-            )}
-          >
+          <Link to="/pricing" className={navButtonClass}>
             Pricing
           </Link>
 
-          {/* Resources Dropdown */}
+          {/* Resources */}
           <div
             className="relative"
             onMouseEnter={() => setActiveDropdown("resources")}
             onMouseLeave={() => setActiveDropdown(null)}
           >
-            <button
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-all rounded-lg",
-                scrolled
-                  ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100/80"
-                  : "text-white hover:text-white hover:bg-white/15"
-              )}
-            >
-              Resources{" "}
+            <button type="button" className={navButtonClass}>
+              Resources
               <ChevronDown
                 size={13}
-                className={cn("transition-transform duration-200", activeDropdown === "resources" ? "rotate-180" : "", scrolled ? "text-zinc-400" : "text-white/70")}
+                className={cn(
+                  chevronClass,
+                  isMenuOpen("resources") && "rotate-180"
+                )}
               />
             </button>
+
             <AnimatePresence>
-              {activeDropdown === "resources" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="absolute right-0 top-full mt-2 w-[600px] rounded-2xl bg-white p-5 shadow-2xl border border-zinc-200/80 grid grid-cols-2 gap-2.5 ring-1 ring-black/5"
-                >
-                  {resourceItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        onClick={() => setActiveDropdown(null)}
-                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-zinc-50/80 transition-all border border-transparent hover:border-zinc-200/60 group"
-                      >
-                        <div className="shrink-0 pt-0.5">
-                          <Icon size={18} strokeWidth={2.5} className={item.color} />
-                        </div>
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
-                              {item.name}
-                            </p>
-                            {item.badge && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200/50">
-                                {item.badge}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">
-                            {item.description}
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </motion.div>
+              {isMenuOpen("resources") && (
+                <MegaMenu
+                  type="resources"
+                  items={resourceItems}
+                  onClose={closeMenus}
+                />
               )}
             </AnimatePresence>
           </div>
 
-          {/* Company Dropdown */}
+          {/* Company */}
           <div
             className="relative"
             onMouseEnter={() => setActiveDropdown("company")}
             onMouseLeave={() => setActiveDropdown(null)}
           >
-            <button
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-all rounded-lg",
-                scrolled
-                  ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100/80"
-                  : "text-white hover:text-white hover:bg-white/15"
-              )}
-            >
-              Company{" "}
+            <button type="button" className={navButtonClass}>
+              Company
               <ChevronDown
                 size={13}
-                className={cn("transition-transform duration-200", activeDropdown === "company" ? "rotate-180" : "", scrolled ? "text-zinc-400" : "text-white/70")}
+                className={cn(
+                  chevronClass,
+                  isMenuOpen("company") && "rotate-180"
+                )}
               />
             </button>
+
             <AnimatePresence>
-              {activeDropdown === "company" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="absolute right-0 top-full mt-2 w-[520px] rounded-2xl bg-white p-5 shadow-2xl border border-zinc-200/80 grid grid-cols-2 gap-2.5 ring-1 ring-black/5"
-                >
-                  {companyItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        onClick={() => setActiveDropdown(null)}
-                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-zinc-50/80 transition-all border border-transparent hover:border-zinc-200/60 group"
-                      >
-                        <div className="shrink-0 pt-0.5">
-                          <Icon size={18} strokeWidth={2.5} className={item.color} />
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-xs font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
-                            {item.name}
-                          </p>
-                          <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">
-                            {item.description}
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </motion.div>
+              {isMenuOpen("company") && (
+                <MegaMenu
+                  type="company"
+                  items={companyItems}
+                  onClose={closeMenus}
+                />
               )}
             </AnimatePresence>
           </div>
         </div>
 
-        {/* Right Actions / Clerk Auth */}
+        {/* Right actions */}
         <div className="flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-3">
               <Link
                 to="/dashboard"
                 className={cn(
-                  "hidden sm:inline-flex px-3.5 py-1.5 text-xs font-semibold transition-all rounded-lg",
+                  "hidden rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all sm:inline-flex",
                   scrolled
-                    ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100"
-                    : "text-white hover:text-white hover:bg-white/15"
+                    ? "text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
+                    : "text-white hover:bg-white/15 hover:text-white"
                 )}
               >
                 Dashboard
               </Link>
+
               <UserButton afterSignOutUrl="/" />
             </div>
           ) : (
@@ -550,10 +600,10 @@ export const Navbar = () => {
                 <button
                   type="button"
                   className={cn(
-                    "px-4 py-2 text-xs font-semibold transition-all rounded-lg",
+                    "rounded-lg px-4 py-2 text-xs font-semibold transition-all",
                     scrolled
-                      ? "text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100"
-                      : "text-white hover:text-white hover:bg-white/15"
+                      ? "text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
+                      : "text-white hover:bg-white/15 hover:text-white"
                   )}
                 >
                   Log in
@@ -566,10 +616,10 @@ export const Navbar = () => {
                   whileTap={{ scale: 0.98 }}
                   type="button"
                   className={cn(
-                    "inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold shadow-xs transition-all",
+                    "inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition-all",
                     scrolled
-                      ? "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm"
-                      : "bg-white text-zinc-950 hover:bg-zinc-100 shadow-md"
+                      ? "bg-zinc-900 text-white hover:bg-zinc-800"
+                      : "bg-white text-zinc-950 shadow-md hover:bg-zinc-100"
                   )}
                 >
                   Get started for free
@@ -578,16 +628,15 @@ export const Navbar = () => {
             </>
           )}
 
-          {/* Mobile Menu Trigger */}
           <button
             type="button"
             className={cn(
-              "md:hidden p-2 rounded-lg",
+              "rounded-lg p-2 md:hidden",
               scrolled
                 ? "text-zinc-800 hover:bg-zinc-100"
                 : "text-white hover:bg-white/15"
             )}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => setMobileMenuOpen((current) => !current)}
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -595,51 +644,114 @@ export const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile navigation */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-zinc-200 bg-white px-6 py-6 shadow-2xl"
+            className="border-t border-zinc-200 bg-white px-6 py-6 shadow-2xl md:hidden"
           >
-            <div className="space-y-4">
-              <Link
-                to="/platform/client-portal"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-semibold text-zinc-800"
-              >
-                Platform Overview
-              </Link>
-              <Link
-                to="/pricing"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-semibold text-zinc-800"
-              >
-                Pricing
-              </Link>
-              <Link
-                to="/blog"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-semibold text-zinc-800"
-              >
-                Blog & GEO Insights
-              </Link>
-              <Link
-                to="/about"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-semibold text-zinc-800"
-              >
-                About Us
-              </Link>
-              <Link
-                to="/contact"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-semibold text-zinc-800"
-              >
-                Contact
-              </Link>
+            <div className="space-y-6">
+              <div>
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  Platform
+                </p>
+
+                <div className="grid gap-2">
+                  <Link
+                    to="/platform"
+                    onClick={closeMenus}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <Workflow size={16} className="text-zinc-900" />
+                    Platform overview
+                  </Link>
+
+                  {platformItems.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={closeMenus}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                      >
+                        <Icon size={16} className="text-zinc-900" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  Solutions
+                </p>
+
+                <div className="grid gap-2">
+                  {solutionItems.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={closeMenus}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                      >
+                        <Icon size={16} className="text-zinc-900" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  Resources
+                </p>
+
+                <div className="grid gap-2">
+                  {resourceItems.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={closeMenus}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                      >
+                        <Icon size={16} className="text-zinc-900" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 border-t border-zinc-100 pt-5">
+                <Link
+                  to="/pricing"
+                  onClick={closeMenus}
+                  className="rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-bold text-zinc-700"
+                >
+                  Pricing
+                </Link>
+
+                <Link
+                  to="/contact"
+                  onClick={closeMenus}
+                  className="rounded-xl bg-[#063ee2] px-4 py-3 text-center text-sm font-bold text-white"
+                >
+                  Contact
+                </Link>
+              </div>
             </div>
           </motion.div>
         )}
