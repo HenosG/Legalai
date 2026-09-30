@@ -21,7 +21,7 @@ const businessProfileSchema = z.object({
 const industrySchema = z.object({
   industry: z.string().min(1, "Industry is required"),
   businessType: z.string().min(1, "Business type is required"),
-  agentName: z.string().optional().default("Rulo"), // 👈 Allow customizing agent name
+  agentName: z.string().optional().default("Rulo"), 
 });
 
 const questionAnswerSchema = z.object({
@@ -71,12 +71,31 @@ router.post("/step1", async (req: Request, res: Response) => {
       console.warn("Could not fetch user details from Clerk, using fallback:", clerkErr);
     }
 
-    await prisma.user.upsert({
+    // 1. GUARANTEE User exists first (Upsert safely by checking ID or Email)
+    let existingUser = await prisma.user.findUnique({
       where: { id: userId },
-      update: { email: userEmail },
-      create: { id: userId, email: userEmail },
     });
 
+    if (!existingUser) {
+      existingUser = await prisma.user.findUnique({
+        where: { email: userEmail },
+      });
+    }
+
+    if (existingUser) {
+      // If found, update the record to ensure the ID matches the current Clerk session
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { id: userId, email: userEmail },
+      });
+    } else {
+      // Otherwise, create the user record so the foreign key constraint passes
+      await prisma.user.create({
+        data: { id: userId, email: userEmail },
+      });
+    }
+
+    // 2. Now safe to create or update the Workspace since the User row 100% exists
     const existingWorkspace = await prisma.workspace.findUnique({ where: { userId } });
 
     if (existingWorkspace) {
@@ -221,37 +240,70 @@ router.get("/status", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Gemini AI Generation Helper Function ────────────────────────────────────
+// ─── Gemini AI Generation Helper Function with Retry Logic ───────────────────
 async function generateAIConfig(workspace: any) {
   const { industry, businessType, agentName, onboardingData } = workspace;
   const context = onboardingData.map((r: any) => `${r.questionKey}: ${r.answer}`).join("\n");
   const agent = agentName || "Rulo";
 
+  // Helper to retry Gemini calls on 503 Service Unavailable / high demand
+  async function callGeminiWithRetry(prompt: string, retries = 3, delay = 2000): Promise<string> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const result = await model.generateContent(prompt);
+        return result.response.text() || "{}";
+      } catch (err: any) {
+        if (attempt === retries || (err?.status !== 503 && !err?.message?.includes('503'))) {
+          throw err;
+        }
+        console.warn(`Gemini model busy (503), retrying attempt ${attempt} of ${retries} in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2; 
+      }
+    }
+    return "{}";
+  }
+
   // 1. Generate Proposal Template
-  const proposalPrompt = `You are ${agent}, an elite AI business operating system. You are configuring a high-converting proposal template for a ${industry} business specializing in ${businessType}. Context:\n${context}\nReturn raw JSON with fields: sections, lineItems, pricingModel`;
-  const proposalResult = await model.generateContent(proposalPrompt);
-  const proposalText = proposalResult.response.text() || "{}";
-  const proposalTemplate = JSON.parse(proposalText.match(/\{[\s\S]*\}/)![0]);
+  let proposalTemplate = { sections: ["Introduction", "Scope of Work", "Pricing & Terms"], lineItems: [], pricingModel: "Fixed" };
+  try {
+    const proposalPrompt = `You are ${agent}, an elite AI business operating system. You are configuring a high-converting proposal template for a ${industry} business specializing in ${businessType}. Context:\n${context}\nReturn raw JSON with fields: sections, lineItems, pricingModel`;
+    const proposalText = await callGeminiWithRetry(proposalPrompt);
+    proposalTemplate = JSON.parse(proposalText.match(/\{[\s\S]*\}/)![0]);
+  } catch (e) {
+    console.warn("AI proposal generation fallback used due to high traffic.");
+  }
 
   const proposalTemplateRecord = await prisma.proposalTemplate.create({
     data: { workspaceId: workspace.id, name: `${industry} Standard Proposal`, content: proposalTemplate },
   });
 
   // 2. Generate CRM Pipeline Stages
-  const pipelinePrompt = `You are ${agent}. Configure an optimized sales CRM pipeline for a ${industry} (${businessType}) business. Context:\n${context}\nReturn raw JSON object with field 'stages' containing an array of strings: e.g. {"stages": ["NEW", "QUALIFIED", "PROPOSAL_SENT", "CLOSED_WON"]}`;
-  const pipelineResult = await model.generateContent(pipelinePrompt);
-  const pipelineText = pipelineResult.response.text() || "{}";
-  const pipelineStages = JSON.parse(pipelineText.match(/\{[\s\S]*\}/)![0]);
+  let pipelineStages = ["NEW", "QUALIFIED", "PROPOSAL_SENT", "CLOSED_WON"];
+  try {
+    const pipelinePrompt = `You are ${agent}. Configure an optimized sales CRM pipeline for a ${industry} (${businessType}) business. Context:\n${context}\nReturn raw JSON object with field 'stages' containing an array of strings: e.g. {"stages": ["NEW", "QUALIFIED", "PROPOSAL_SENT", "CLOSED_WON"]}`;
+    const pipelineText = await callGeminiWithRetry(pipelinePrompt);
+    const parsedPipeline = JSON.parse(pipelineText.match(/\{[\s\S]*\}/)![0]);
+    if (parsedPipeline.stages && Array.isArray(parsedPipeline.stages)) {
+      pipelineStages = parsedPipeline.stages;
+    }
+  } catch (e) {
+    console.warn("AI pipeline generation fallback used due to high traffic.");
+  }
 
   const pipelineRecord = await prisma.crmPipeline.create({
-    data: { workspaceId: workspace.id, name: `${industry} Sales Pipeline`, stages: pipelineStages.stages || ["NEW", "QUALIFIED", "PROPOSAL_SENT", "CLOSED_WON"] },
+    data: { workspaceId: workspace.id, name: `${industry} Sales Pipeline`, stages: pipelineStages },
   });
 
   // 3. Generate Invoice Template
-  const invoicePrompt = `You are ${agent}. Configure a professional invoice template for a ${industry} (${businessType}) business. Context:\n${context}\nReturn raw JSON with fields: fields, lineItems, paymentTerms`;
-  const invoiceResult = await model.generateContent(invoicePrompt);
-  const invoiceText = invoiceResult.response.text() || "{}";
-  const invoiceTemplate = JSON.parse(invoiceText.match(/\{[\s\S]*\}/)![0]);
+  let invoiceTemplate = { fields: ["Item", "Quantity", "Rate", "Total"], lineItems: [], paymentTerms: "Net 30" };
+  try {
+    const invoicePrompt = `You are ${agent}. Configure a professional invoice template for a ${industry} (${businessType}) business. Context:\n${context}\nReturn raw JSON with fields: fields, lineItems, paymentTerms`;
+    const invoiceText = await callGeminiWithRetry(invoicePrompt);
+    invoiceTemplate = JSON.parse(invoiceText.match(/\{[\s\S]*\}/)![0]);
+  } catch (e) {
+    console.warn("AI invoice generation fallback used due to high traffic.");
+  }
 
   const invoiceTemplateRecord = await prisma.invoiceTemplate.create({
     data: { workspaceId: workspace.id, name: `${industry} Standard Invoice`, content: invoiceTemplate },

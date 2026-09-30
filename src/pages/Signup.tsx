@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { SignIn, SignUp, useUser } from "@clerk/clerk-react";
+import {
+  SignInButton,
+  SignUp,
+  useUser,
+} from "@clerk/clerk-react";
 import {
   ArrowRight,
   Check,
@@ -11,6 +14,8 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// ─── Interactive Home Button ─────────────────────────────────────────────────
 
 interface InteractiveHoverButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -45,6 +50,8 @@ const InteractiveHoverButton = React.forwardRef<
 });
 
 InteractiveHoverButton.displayName = "InteractiveHoverButton";
+
+// ─── Globe Visual ────────────────────────────────────────────────────────────
 
 function NetworkGlobeVisual() {
   const locations = [
@@ -100,46 +107,17 @@ function NetworkGlobeVisual() {
   );
 }
 
+// ─── Sign Up Page ────────────────────────────────────────────────────────────
+
 export default function Signup() {
   const navigate = useNavigate();
   const { isLoaded, isSignedIn } = useUser();
-
-  const [authView, setAuthView] = useState<"signup" | "signin">(() => {
-    return window.location.hash === "#sign-in" ? "signin" : "signup";
-  });
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       navigate("/dashboard", { replace: true });
     }
   }, [isLoaded, isSignedIn, navigate]);
-
-  useEffect(() => {
-    const syncAuthViewFromHash = () => {
-      setAuthView(window.location.hash === "#sign-in" ? "signin" : "signup");
-    };
-
-    window.addEventListener("hashchange", syncAuthViewFromHash);
-
-    return () => {
-      window.removeEventListener("hashchange", syncAuthViewFromHash);
-    };
-  }, []);
-
-  const switchAuthView = (nextView: "signup" | "signin") => {
-    setAuthView(nextView);
-
-    if (nextView === "signin") {
-      window.location.hash = "sign-in";
-      return;
-    }
-
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}`
-    );
-  };
 
   if (!isLoaded) {
     return (
@@ -240,7 +218,7 @@ export default function Signup() {
       `}</style>
 
       <div className="grid min-h-screen w-full lg:grid-cols-[1.1fr_1fr]">
-        {/* Left column: RelunoOS globe and product visual (Moved to Left) */}
+        {/* Left column: Product visual */}
         <section className="auth-grid relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-10 xl:px-16">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,rgba(3,26,117,0.65)_70%,rgba(1,11,51,0.9)_100%)]" />
 
@@ -291,7 +269,7 @@ export default function Signup() {
           </div>
         </section>
 
-        {/* Right column: Clerk auth area with clear border wrapper */}
+        {/* Right column: Sign-up form */}
         <section className="relative flex flex-col justify-between bg-white px-6 py-6 sm:px-10 lg:px-12">
           <div className="flex items-center justify-between">
             <Link
@@ -303,6 +281,7 @@ export default function Signup() {
                 alt="RelunoOS Logo"
                 className="h-6 w-6 object-contain transition-all"
               />
+
               <span>
                 RELUNOOS<span className="text-[#063ee2]">.</span>
               </span>
@@ -310,7 +289,7 @@ export default function Signup() {
 
             <Link
               to="/pricing"
-              className="text-xs font-semibold text-zinc-500 hover:text-[#063ee2] transition-colors"
+              className="text-xs font-semibold text-zinc-500 transition-colors hover:text-[#063ee2]"
             >
               View pricing →
             </Link>
@@ -319,96 +298,65 @@ export default function Signup() {
           <div className="my-auto w-full max-w-md py-4">
             <div className="mb-3">
               <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#063ee2]">
-                {authView === "signup" ? "Start free workspace" : "Welcome back"}
+                Start free workspace
               </span>
 
               <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-                {authView === "signup"
-                  ? "Build a calmer client workflow."
-                  : "Continue your client workflow."}
+                Build a calmer client workflow.
               </h1>
             </div>
 
-            {/* Clerk UI container with a clear, visible border wrapper */}
+            {/* Embedded Clerk Sign Up */}
             <div className="clerk-auth-card w-full rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-              {authView === "signup" ? (
-                <SignUp
-                  routing="hash"
-                  signInUrl="#sign-in"
-                  fallbackRedirectUrl="/dashboard"
-                  appearance={{
-                    elements: {
-                      rootBox: "w-full bg-transparent",
-                      card: "w-full border-0 bg-transparent p-0 shadow-none",
-                      cardBox:
-                        "w-full border-0 bg-transparent p-0 shadow-none",
-                      footerAction: "hidden",
-                    },
-                  }}
-                />
-              ) : (
-                <SignIn
-                  routing="hash"
-                  signUpUrl="#sign-up"
-                  fallbackRedirectUrl="/dashboard"
-                  appearance={{
-                    elements: {
-                      rootBox: "w-full bg-transparent",
-                      card: "w-full border-0 bg-transparent p-0 shadow-none",
-                      cardBox:
-                        "w-full border-0 bg-transparent p-0 shadow-none",
-                      footerAction: "hidden",
-                    },
-                  }}
-                />
-              )}
+              <SignUp
+                routing="hash"
+                forceRedirectUrl="/dashboard"
+                fallbackRedirectUrl="/dashboard"
+                appearance={{
+                  elements: {
+                    rootBox: "w-full bg-transparent",
+                    card: "w-full border-0 bg-transparent p-0 shadow-none",
+                    cardBox:
+                      "w-full border-0 bg-transparent p-0 shadow-none",
+                    footerAction: "hidden",
+                  },
+                }}
+              />
             </div>
 
-            {authView === "signup" && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-blue-100/60 bg-blue-50/60 p-3">
-                {[
-                  "AI Intake & CRM",
-                  "Proposals & Projects",
-                  "Client Portal",
-                  "No credit card required",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-1.5 text-xs font-medium text-zinc-700"
-                  >
-                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-[#063ee2] text-white">
-                      <Check size={9} strokeWidth={3} />
-                    </span>
-                    {item}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-blue-100/60 bg-blue-50/60 p-3">
+              {[
+                "AI Intake & CRM",
+                "Proposals & Projects",
+                "Client Portal",
+                "No credit card required",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-1.5 text-xs font-medium text-zinc-700"
+                >
+                  <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-[#063ee2] text-white">
+                    <Check size={9} strokeWidth={3} />
+                  </span>
+                  {item}
+                </div>
+              ))}
+            </div>
 
+            {/* Opens Clerk's Sign In modal popup */}
             <p className="mt-4 text-center text-xs text-zinc-500">
-              {authView === "signup" ? (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchAuthView("signin")}
-                    className="font-bold text-[#063ee2] hover:underline"
-                  >
-                    Sign in
-                  </button>
-                </>
-              ) : (
-                <>
-                  New to RelunoOS?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchAuthView("signup")}
-                    className="font-bold text-[#063ee2] hover:underline"
-                  >
-                    Start free
-                  </button>
-                </>
-              )}
+              Already have an account?{" "}
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl="/dashboard"
+              >
+                <button
+                  type="button"
+                  className="font-bold text-[#063ee2] hover:underline"
+                >
+                  Sign in
+                </button>
+              </SignInButton>
             </p>
           </div>
 

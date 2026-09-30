@@ -612,8 +612,7 @@ function ClientStatusChart({
           ))
         ) : (
           <p className="pr-3 text-[11px] leading-5 text-zinc-400">
-            Add clients to see a breakdown of leads, active clients, and
-            inactive records.
+            Add clients to see a breakdown of many records.
           </p>
         )}
       </div>

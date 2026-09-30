@@ -1,3 +1,4 @@
+// server/routes/aiIntake.ts
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -86,7 +87,7 @@ router.get('/:id', async (req: any, res) => {
       return res.status(404).json({ error: "Intake record not found" });
     }
 
-    // Format budget as a readable string for frontend state
+    // Format budget as a readable string for frontend state safely
     const formattedBudget = intake.budgetMin && intake.budgetMax 
       ? `$${intake.budgetMin.toLocaleString()} - $${intake.budgetMax.toLocaleString()}`
       : intake.budgetMin 
@@ -95,7 +96,6 @@ router.get('/:id', async (req: any, res) => {
       ? `$${intake.budgetMax.toLocaleString()}` 
       : '';
 
-    // Wrap confidence schema in metadata object for frontend compatibility
     const responsePayload = {
       ...intake,
       budget: formattedBudget,
@@ -131,7 +131,7 @@ router.post('/', async (req: any, res) => {
       Analyze this incoming client message/lead submission for an agency:
       "${rawMessage}"
 
-      Extract and return ONLY a raw JSON object (no markdown code blocks) with the following exact structure:
+      Extract and return ONLY a raw JSON object (no markdown code blocks) with the exact structure:
       {
         "extractedName": "client's name if mentioned in text, otherwise 'Inbound Lead'",
         "extractedCompany": "company name if mentioned or 'Independent'",
@@ -139,7 +139,7 @@ router.post('/', async (req: any, res) => {
         "projectType": "e.g., Web App, Landing Page, Mobile App, E-commerce Marketing Campaign",
         "scopeSummary": "a concise 2-3 sentence summary of what the client wants built or done",
         "estimatedBudget": { "min": number, "max": number, "currency": "USD" },
-        "timeline": "extract explicit timeline or target launch date/event (e.g., 'December 1, 2026', 'Next month') or null if missing",
+        "timeline": "extract explicit timeline or target launch date/event or null if missing",
         "leadScore": number between 1 and 100,
         "qualified": boolean,
         "urgency": "low" | "medium" | "high",
@@ -221,14 +221,10 @@ router.patch('/:id', async (req: any, res) => {
       delete updates.budget;
     }
 
-    const updatedIntake = await prisma.aIIntake.updateMany({
+    await prisma.aIIntake.updateMany({
       where: { id, userId },
       data: updates
     });
-
-    if (updatedIntake.count === 0) {
-      return res.status(404).json({ error: "Intake record not found or unauthorized" });
-    }
 
     const freshRecord = await prisma.aIIntake.findUnique({ where: { id } });
     
@@ -285,9 +281,9 @@ router.post('/:id/accept', async (req: any, res) => {
       data: {
         userId,
         clientId: client.id,
-        name: intake.projectType || 'New Project',
-        status: 'IN_PROGRESS',
-        budget: typeof budgetValue === 'number' ? budgetValue : 0
+        name: intake.projectType || "New Project",
+        status: "PLANNING",
+        budget: budgetValue,
       }
     });
 
@@ -309,10 +305,10 @@ router.post('/:id/accept', async (req: any, res) => {
       }
     });
 
-    return res.json({ client: { id: client.id } });
+    return res.json({ client: { id: client.id }, redirectUrl: '/crm' });
   } catch (error: any) {
     console.error("❌ Error accepting AI intake:", error.message);
-    res.status(500).json({ error: "Failed to accept intake", details: error.message });
+    return res.status(500).json({ error: "Failed to accept intake", details: error.message });
   }
 });
 
@@ -350,7 +346,7 @@ router.post('/:id/reject', async (req: any, res) => {
     return res.json(updated);
   } catch (error: any) {
     console.error("❌ Error rejecting intake:", error.message);
-    res.status(500).json({ error: "Failed to reject intake", details: error.message });
+    return res.status(500).json({ error: "Failed to reject intake", details: error.message });
   }
 });
 
@@ -375,17 +371,23 @@ router.post('/:id/proposal', async (req: any, res) => {
 
     const proposalAmount = intake.budgetMax || intake.budgetMin || 0;
 
+    const proposalData: any = {
+      user: { connect: { id: userId } },
+      intake: { connect: { id: intake.id } }, // Fixed relation connection for intake
+      title: `${intake.projectType || 'Project'} Proposal for ${intake.contactName}`,
+      amount: proposalAmount,
+      status: 'DRAFT',
+      scopeOfWork: Array.isArray(intake.requirements) ? intake.requirements.join('\n') : null,
+      timeline: intake.timeline || null,
+    };
+
+    // If a client was already created or linked, connect it
+    if (intake.clientId) {
+      proposalData.client = { connect: { id: intake.clientId } };
+    }
+
     const proposal = await prisma.proposal.create({
-      data: {
-        userId,
-        clientId: intake.clientId || null,
-        intakeId: intake.id,
-        title: `${intake.projectType || 'Project'} Proposal for ${intake.contactName}`,
-        amount: proposalAmount,
-        status: 'draft',
-        scopeOfWork: Array.isArray(intake.requirements) ? intake.requirements.join('\n') : null,
-        timeline: intake.timeline || null,
-      }
+      data: proposalData
     });
 
     await prisma.activityLog.create({
@@ -401,7 +403,7 @@ router.post('/:id/proposal', async (req: any, res) => {
     return res.status(201).json(proposal);
   } catch (error: any) {
     console.error("❌ Error generating proposal from intake:", error.message);
-    res.status(500).json({ error: "Failed to generate proposal", details: error.message });
+    return res.status(500).json({ error: "Failed to generate proposal", details: error.message });
   }
 });
 

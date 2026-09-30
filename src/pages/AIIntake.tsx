@@ -792,12 +792,7 @@ export default function AIIntake() {
           {}
         );
 
-        if (response?.client?.id) {
-          navigate(`/crm/${response.client.id}`);
-        } else {
-          navigate("/crm");
-        }
-
+        navigate("/crm");
         return;
       }
 

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { useSubscription } from "@/hooks/useSubscription";
-import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -12,17 +11,20 @@ import {
   FolderKanban,
   Receipt,
   Settings,
-  CreditCard,
   LogOut,
   HelpCircle,
   PanelLeft,
   ChevronsUpDown,
-  Search,
   ArrowUpRight,
-  CornerDownLeft,
+  Moon,
+  Sun,
+  Plus,
+  UserPlus,
+  Sparkles,
+  FilePenLine,
 } from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface NavItem {
   label: string;
@@ -146,11 +148,6 @@ function CommandPalette({
             className="flex h-[420px] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_20px_60px_-12px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-zinc-900"
           >
             <div className="flex items-center gap-2.5 border-b border-zinc-100 px-3.5 py-3 dark:border-white/[0.06]">
-              <Search
-                className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500"
-                strokeWidth={2}
-              />
-
               <input
                 ref={inputRef}
                 type="text"
@@ -172,7 +169,7 @@ function CommandPalette({
             <div className="flex-1 overflow-y-auto py-1.5">
               {Object.keys(grouped).length === 0 ? (
                 <div className="px-4 py-8 text-center text-[13px] text-zinc-400 dark:text-zinc-500">
-                  No matches for “{search}”
+                  No matches for "{search}"
                 </div>
               ) : (
                 Object.entries(grouped).map(([category, items]) => (
@@ -207,10 +204,6 @@ function CommandPalette({
                             strokeWidth={2}
                           />
                           <span className="flex-1 truncate">{item.label}</span>
-
-                          {isActive && (
-                            <CornerDownLeft className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
-                          )}
                         </button>
                       );
                     })}
@@ -247,11 +240,13 @@ function NavRow({
   item,
   isActive,
   collapsed,
+  isDark,
   onClick,
 }: {
   item: NavItem;
   isActive: boolean;
   collapsed: boolean;
+  isDark: boolean;
   onClick: () => void;
 }) {
   const Icon = item.icon;
@@ -266,36 +261,62 @@ function NavRow({
         "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-100",
         collapsed && "justify-center px-0 py-2.5",
         isActive
-          ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
-          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-white"
+          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+          : isDark
+          ? "text-white hover:bg-white/10"
+          : "text-zinc-900 hover:bg-zinc-100"
       )}
     >
       {isActive && (
         <motion.span
           layoutId="nav-active-pill"
-          className="absolute inset-0 rounded-xl bg-zinc-100 dark:bg-white/10"
+          className="absolute inset-0 rounded-xl bg-zinc-900 dark:bg-white"
           transition={{ type: "spring", stiffness: 500, damping: 40 }}
         />
       )}
 
-      <Icon
-        className={cn(
-          "relative h-[17px] w-[17px] shrink-0",
-          isAiIntake
-            ? "text-blue-600 dark:text-blue-400"
-            : isActive
-            ? "text-zinc-900 dark:text-white"
-            : "text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-200"
-        )}
-        strokeWidth={2}
-      />
+      {isAiIntake ? (
+        <img
+          src={isDark ? "/1-white.svg" : "/1.svg"}
+          alt=""
+          className={cn(
+            "relative h-4 w-4 shrink-0 object-contain",
+            isActive ? "opacity-100" : "opacity-90"
+          )}
+        />
+      ) : (
+        <Icon
+          className={cn(
+            "relative h-4 w-4 shrink-0",
+            isActive
+              ? isDark
+                ? "text-zinc-900"
+                : "text-white"
+              : isDark
+              ? "text-white"
+              : "text-zinc-900"
+          )}
+          strokeWidth={2}
+        />
+      )}
 
       {!collapsed && (
         <span className="relative flex-1 truncate text-left">{item.label}</span>
       )}
 
       {!collapsed && isAiIntake && (
-        <span className="relative rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+        <span
+          className={cn(
+            "relative rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+            isActive
+              ? isDark
+                ? "bg-zinc-900 text-white"
+                : "bg-white text-zinc-900"
+              : isDark
+              ? "bg-white text-zinc-900"
+              : "bg-zinc-900 text-white"
+          )}
+        >
           AI
         </span>
       )}
@@ -303,15 +324,17 @@ function NavRow({
   );
 }
 
-// ─── Settings Row (Direct Navigation Only) ───────────────────────────────────
+// ─── Settings Row ────────────────────────────────────────────────────────────
 
 function SettingsRow({
   collapsed,
   isActive,
+  isDark,
   onClick,
 }: {
   collapsed: boolean;
   isActive: boolean;
+  isDark: boolean;
   onClick: () => void;
 }) {
   return (
@@ -323,14 +346,16 @@ function SettingsRow({
         "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-[13px] font-medium transition-colors",
         collapsed && "justify-center px-0 py-2.5",
         isActive
-          ? "bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white"
-          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-white"
+          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+          : isDark
+          ? "text-white hover:bg-white/10"
+          : "text-zinc-900 hover:bg-zinc-100"
       )}
     >
       {isActive && (
         <motion.span
           layoutId="settings-active-pill"
-          className="absolute inset-0 rounded-xl bg-zinc-100 dark:bg-white/10"
+          className="absolute inset-0 rounded-xl bg-zinc-900 dark:bg-white"
           transition={{ type: "spring", stiffness: 500, damping: 40 }}
         />
       )}
@@ -339,8 +364,12 @@ function SettingsRow({
         className={cn(
           "relative h-[17px] w-[17px] shrink-0",
           isActive
-            ? "text-zinc-900 dark:text-white"
-            : "text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-200"
+            ? isDark
+              ? "text-zinc-900"
+              : "text-white"
+            : isDark
+            ? "text-white"
+            : "text-zinc-900"
         )}
         strokeWidth={2}
       />
@@ -356,6 +385,7 @@ function SettingsRow({
 
 function AccountMenu({
   collapsed,
+  isDark,
   userName,
   userInitials,
   planLabel,
@@ -364,6 +394,7 @@ function AccountMenu({
   onExpandIfNeeded,
 }: {
   collapsed: boolean;
+  isDark: boolean;
   userName: string;
   userInitials: string;
   planLabel: string;
@@ -398,13 +429,33 @@ function AccountMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
-            className="absolute bottom-[calc(100%+6px)] left-0 right-0 z-50 w-full rounded-xl border border-zinc-200 bg-white py-1.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)] dark:backdrop-blur-xl"
+            className={cn(
+              "absolute bottom-[calc(100%+6px)] left-0 right-0 z-50 w-full rounded-xl border py-1.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)]",
+              isDark
+                ? "border-white/10 bg-zinc-900 shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)]"
+                : "border-zinc-200 bg-white"
+            )}
           >
-            <div className="border-b border-zinc-100 px-3 pb-2 pt-1 dark:border-white/[0.06]">
-              <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white">
+            <div
+              className={cn(
+                "border-b px-3 pb-2 pt-1",
+                isDark ? "border-white/[0.06]" : "border-zinc-100"
+              )}
+            >
+              <p
+                className={cn(
+                  "truncate text-[13px] font-semibold",
+                  isDark ? "text-white" : "text-zinc-900"
+                )}
+              >
                 {userName}
               </p>
-              <p className="text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">
+              <p
+                className={cn(
+                  "text-[11.5px] font-medium",
+                  isDark ? "text-zinc-400" : "text-zinc-500"
+                )}
+              >
                 {planLabel} plan
               </p>
             </div>
@@ -415,16 +466,29 @@ function AccountMenu({
                 setOpen(false);
                 navigate("/support");
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white"
+              className={cn(
+                "flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors",
+                isDark
+                  ? "text-zinc-300 hover:bg-white/5 hover:text-white"
+                  : "text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900"
+              )}
             >
               <HelpCircle
-                className="h-[15px] w-[15px] text-zinc-400 dark:text-zinc-500"
+                className={cn(
+                  "h-[15px] w-[15px]",
+                  isDark ? "text-zinc-500" : "text-zinc-400"
+                )}
                 strokeWidth={2}
               />
               Help & Support
             </button>
 
-            <div className="my-1 border-t border-zinc-100 dark:border-white/[0.06]" />
+            <div
+              className={cn(
+                "my-1 border-t",
+                isDark ? "border-white/[0.06]" : "border-zinc-100"
+              )}
+            />
 
             <button
               type="button"
@@ -432,11 +496,23 @@ function AccountMenu({
                 setOpen(false);
                 onUpgrade();
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
+              className={cn(
+                "flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium transition-colors",
+                isDark
+                  ? "text-blue-400 hover:bg-blue-500/10"
+                  : "text-blue-600 hover:bg-blue-50"
+              )}
             >
               <ArrowUpRight className="h-[15px] w-[15px]" strokeWidth={2} />
               Upgrade Plan
             </button>
+
+            <div
+              className={cn(
+                "my-1 border-t",
+                isDark ? "border-white/[0.06]" : "border-zinc-100"
+              )}
+            />
 
             <button
               type="button"
@@ -444,7 +520,12 @@ function AccountMenu({
                 setOpen(false);
                 onLogout();
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+              className={cn(
+                "flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors",
+                isDark
+                  ? "text-red-400 hover:bg-red-500/10"
+                  : "text-red-600 hover:bg-red-50"
+              )}
             >
               <LogOut className="h-[15px] w-[15px]" strokeWidth={2} />
               Log out
@@ -461,35 +542,55 @@ function AccountMenu({
             setOpen(false);
             return;
           }
-
           setOpen((current) => !current);
         }}
         title={userName}
         className={cn(
           "group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 transition-colors duration-150",
-          "hover:bg-zinc-100 dark:hover:bg-white/[0.06]",
-          collapsed && "justify-center px-0"
+          isDark
+            ? "hover:bg-white/10"
+            : "hover:bg-zinc-100"
         )}
       >
-        <div className="relative flex h-7 w-7 shrink-0 items-center justify-center">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[10.5px] font-semibold text-white ring-1 ring-zinc-200 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-white/10">
-            {userInitials}
-          </div>
+        <div
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10.5px] font-semibold ring-1",
+            isDark
+              ? "bg-white text-zinc-900 ring-white/10"
+              : "bg-zinc-900 text-white ring-zinc-200"
+          )}
+        >
+          {userInitials}
         </div>
 
         {!collapsed && (
           <>
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-[12.5px] font-semibold text-zinc-900 dark:text-zinc-100">
+              <p
+                className={cn(
+                  "truncate text-[12.5px] font-semibold",
+                  isDark ? "text-zinc-100" : "text-zinc-900"
+                )}
+              >
                 {userName}
               </p>
-              <p className="truncate text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+              <p
+                className={cn(
+                  "truncate text-[11px] font-medium",
+                  isDark ? "text-zinc-500" : "text-zinc-400"
+                )}
+              >
                 {planLabel} plan
               </p>
             </div>
 
             <ChevronsUpDown
-              className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-600 dark:text-zinc-600 dark:group-hover:text-zinc-300"
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 transition-colors",
+                isDark
+                  ? "text-zinc-600 group-hover:text-zinc-300"
+                  : "text-zinc-400 group-hover:text-zinc-600"
+              )}
               strokeWidth={2}
             />
           </>
@@ -499,11 +600,97 @@ function AccountMenu({
   );
 }
 
+// ─── Quick Actions (shadcn-style) ────────────────────────────────────────────
+
+function QuickActions({
+  collapsed,
+  isDark,
+}: {
+  collapsed: boolean;
+  isDark: boolean;
+}) {
+  const navigate = useNavigate();
+
+  const actions = [
+    {
+      label: "New proposal",
+      icon: FilePenLine,
+      onClick: () => navigate("/proposals"),
+    },
+    {
+      label: "AI intake",
+      icon: Sparkles,
+      onClick: () => navigate("/intake"),
+    },
+    {
+      label: "New client",
+      icon: UserPlus,
+      onClick: () => navigate("/crm/"),
+    },
+    {
+      label: "New invoice",
+      icon: Plus,
+      onClick: () => navigate("/invoices/"),
+    },
+  ];
+
+  if (collapsed) {
+    return (
+      <div className="space-y-1">
+        {actions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            onClick={action.onClick}
+            title={action.label}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-xl px-2.5 py-2 transition-colors",
+              isDark
+                ? "text-white hover:bg-white/10"
+                : "text-zinc-900 hover:bg-zinc-100"
+            )}
+          >
+            <action.icon className="h-4 w-4" strokeWidth={2} />
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {actions.map((action) => (
+        <button
+          key={action.label}
+          type="button"
+          onClick={action.onClick}
+          className={cn(
+            "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-colors",
+            isDark
+              ? "text-white hover:bg-white/10"
+              : "text-zinc-900 hover:bg-zinc-100"
+          )}
+        >
+          <action.icon
+            className={cn(
+              "h-4 w-4 shrink-0",
+              isDark ? "text-white" : "text-zinc-900"
+            )}
+            strokeWidth={2}
+          />
+          <span className="flex-1 truncate text-left">{action.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Sidebar Main ────────────────────────────────────────────────────────────
 
 function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -531,7 +718,6 @@ function DashboardSidebar() {
     navigate("/login");
   };
 
-  // 🛑 FIX: Redirect to /pricing instead of /billing
   const handleUpgrade = () => navigate("/pricing");
 
   useEffect(() => {
@@ -559,7 +745,10 @@ function DashboardSidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-4 flex h-[calc(100vh-2rem)] shrink-0 flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.12)] transition-all duration-200 ease-out dark:border-white/10 dark:bg-zinc-950 dark:shadow-[0_20px_60px_-16px_rgba(0,0,0,0.5)]",
+        "sticky top-4 flex h-[calc(100vh-2rem)] shrink-0 flex-col overflow-hidden rounded-3xl border shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.12)] transition-all duration-200 ease-out dark:shadow-[0_20px_60px_-16px_rgba(0,0,0,0.5)]",
+        isDark
+          ? "border-white/10 bg-zinc-950"
+          : "border-zinc-200 bg-white",
         collapsed ? "w-[72px]" : "w-[252px]"
       )}
     >
@@ -576,13 +765,19 @@ function DashboardSidebar() {
           aria-label="Go to dashboard"
         >
           <img
-            src="/1.svg"
+            src={isDark ? "/1-white.svg" : "/1.svg"}
             alt="RelunoOS"
             className="h-6 w-6 shrink-0 object-contain"
           />
           {!collapsed && (
-            <span className="text-sm font-extrabold tracking-[-0.035em] text-zinc-900">
-              RELUNOOS<span className="text-[#063ee2]">.</span>
+            <span
+              className={cn(
+                "text-sm font-extrabold tracking-[-0.035em]",
+                isDark ? "text-white" : "text-zinc-900"
+              )}
+            >
+              RELUNOOS
+              <span className={isDark ? "text-white" : "text-[#063ee2]"}>.</span>
             </span>
           )}
         </Link>
@@ -591,18 +786,32 @@ function DashboardSidebar() {
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setCommandOpen(true)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
-              title="Search (Ctrl/⌘ K)"
-              aria-label="Search navigation"
+              onClick={() => setIsDark((d) => !d)}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+                isDark
+                  ? "text-white hover:bg-white/10"
+                  : "text-zinc-900 hover:bg-zinc-100"
+              )}
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label="Toggle theme"
             >
-              <Search className="h-[16px] w-[16px]" strokeWidth={2} />
+              {isDark ? (
+                <Sun className="h-[16px] w-[16px]" strokeWidth={2} />
+              ) : (
+                <Moon className="h-[16px] w-[16px]" strokeWidth={2} />
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+                isDark
+                  ? "text-white hover:bg-white/10"
+                  : "text-zinc-900 hover:bg-zinc-100"
+              )}
               title="Collapse sidebar"
               aria-label="Collapse sidebar"
             >
@@ -618,7 +827,12 @@ function DashboardSidebar() {
           <button
             type="button"
             onClick={() => setCollapsed(false)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+              isDark
+                ? "text-white hover:bg-white/10"
+                : "text-zinc-900 hover:bg-zinc-100"
+            )}
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
@@ -653,21 +867,45 @@ function DashboardSidebar() {
                 location.pathname.startsWith("/proposals/"))
             }
             collapsed={collapsed}
+            isDark={isDark}
             onClick={() => navigate(item.path)}
           />
         ))}
       </nav>
 
       {/* Footer */}
-      <div className="relative shrink-0 space-y-0.5 border-t border-zinc-100 p-3 dark:border-white/[0.06]">
+      <div
+        className={cn(
+          "relative shrink-0 space-y-0.5 border-t p-3",
+          isDark ? "border-white/[0.06]" : "border-zinc-100"
+        )}
+      >
+        {/* Quick actions */}
+        <div
+          className={cn(
+            "mb-2",
+            isDark ? "border-white/[0.06]" : "border-zinc-100"
+          )}
+        />
+        <QuickActions collapsed={collapsed} isDark={isDark} />
+
+        <div
+          className={cn(
+            "my-2 border-t",
+            isDark ? "border-white/[0.06]" : "border-zinc-100"
+          )}
+        />
+
         <SettingsRow
           collapsed={collapsed}
           isActive={isSettingsActive}
+          isDark={isDark}
           onClick={() => navigate("/account")}
         />
 
         <AccountMenu
           collapsed={collapsed}
+          isDark={isDark}
           userName={userName}
           userInitials={userInitials}
           planLabel={planLabel}
@@ -684,12 +922,22 @@ function DashboardSidebar() {
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen w-full bg-zinc-100 p-4 dark:bg-black">
+    <div
+      className={cn(
+        "relative min-h-screen w-full p-4",
+        "bg-zinc-100 dark:bg-black"
+      )}
+    >
       <div className="flex w-full gap-4">
         <DashboardSidebar />
 
         <div className="min-w-0 flex-1">
-          <main className="min-h-[calc(100vh-2rem)] w-full overflow-y-auto rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950">
+          <main
+            className={cn(
+              "min-h-[calc(100vh-2rem)] w-full overflow-y-auto rounded-3xl border shadow-sm",
+              "border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950"
+            )}
+          >
             {children}
           </main>
         </div>

@@ -2,11 +2,16 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Pencil, XCircle, Loader2, AlertCircle, FileText } from "lucide-react";
+import { ArrowLeft, Pencil, XCircle, Loader2, AlertCircle, FileText, CheckCircle2Icon, AlertCircleIcon } from "lucide-react";
 import { createApiClient } from "@/lib/api";
 import LeadScoreBadge from "../components/LeadScoreBadge";
 import ConfidenceBar from "../components/ConfidenceBar";
 import { Intake } from "../components/AIIntakeCard";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 interface IntakeDetail extends Intake {
   metadata?: { confidence?: Record<string, number> } | null;
@@ -31,6 +36,9 @@ export default function AIIntakeDetail() {
   const [editValues, setEditValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [acting, setActing] = useState<"accept" | "reject" | null>(null);
+
+  // Banner Notification State
+  const [banner, setBanner] = useState<{ type: "success" | "destructive"; title: string; message: string } | null>(null);
 
   const api = async () => createApiClient(await getToken());
 
@@ -81,8 +89,10 @@ export default function AIIntakeDetail() {
       const updated = await (await api()).patch<IntakeDetail>(`/api/ai-intake/${id}`, payload);
       setIntake(updated);
       setEditingField(null);
+      setBanner({ type: "success", title: "Updated successfully", message: `Field ${FIELD_LABELS[field]} was saved.` });
     } catch (e) {
       console.error("Error saving field:", e);
+      setBanner({ type: "destructive", title: "Update failed", message: "Could not save changes to this field." });
     } finally {
       setSaving(false);
     }
@@ -91,13 +101,18 @@ export default function AIIntakeDetail() {
   const handleAcceptAndGenerateProposal = async () => {
     if (!id || !intake) return;
     setActing("accept");
+    setBanner(null);
+
+    // Immediately update local state to hide buttons instantly
+    setIntake((prev) => prev ? { ...prev, status: "ACCEPTED" } : null);
+
     try {
       const apiClient = await api();
 
-      // 1. Accept the intake (converts to client & project)
+      // 1. Accept the intake
       await apiClient.post(`/api/ai-intake/${id}/accept`, {});
 
-      // 2. Generate proposal using the backend route that handles proper budget parsing
+      // 2. Generate proposal
       const proposalRes = await apiClient.post<any>(`/api/ai-intake/${id}/proposal`, {});
 
       const proposalId = 
@@ -113,7 +128,11 @@ export default function AIIntakeDetail() {
     } catch (e: any) {
       console.error("Error accepting lead and generating proposal:", e);
       const errorMessage = e?.response?.data?.error || e?.message || "Unknown error";
-      alert(`Failed to generate proposal: ${errorMessage}`);
+      setBanner({
+        type: "destructive",
+        title: "Failed to generate proposal",
+        message: errorMessage,
+      });
       setActing(null);
     }
   };
@@ -121,12 +140,22 @@ export default function AIIntakeDetail() {
   const handleReject = async () => {
     if (!id) return;
     setActing("reject");
+    setBanner(null);
+
+    // Immediately update local state
+    setIntake((prev) => prev ? { ...prev, status: "REJECTED" } : null);
+
     try {
       await (await api()).post(`/api/ai-intake/${id}/reject`, {});
-      navigate("/ai-intake");
+      setActing(null);
+      setBanner({ type: "success", title: "Lead rejected", message: "This inquiry has been marked as unqualified." });
     } catch (e: any) {
       console.error("Error rejecting intake:", e);
-      alert(`Failed to reject: ${e?.message || "Route not found"}`);
+      setBanner({
+        type: "destructive",
+        title: "Failed to reject",
+        message: e?.message || "Route not found",
+      });
       setActing(null);
     }
   };
@@ -171,12 +200,22 @@ export default function AIIntakeDetail() {
           <ArrowLeft size={15} /> Back to Intakes
         </button>
 
+        {banner && (
+          <div className="mb-6">
+            <Alert variant={banner.type === "destructive" ? "destructive" : "default"}>
+              {banner.type === "destructive" ? <AlertCircleIcon className="h-4 w-4" /> : <CheckCircle2Icon className="h-4 w-4" />}
+              <AlertTitle>{banner.title}</AlertTitle>
+              <AlertDescription>{banner.message}</AlertDescription>
+            </Alert>
+          </div>
+        )}
+
         <div className="flex items-start justify-between flex-wrap gap-4 mb-10">
           <div>
             <h1 className="font-serif text-4xl font-bold text-zinc-900 tracking-tight mb-1">
               {intake.projectType || "Unspecified project"}
             </h1>
-            <p className="text-sm text-zinc-500 capitalize">{intake.channel} inquiry · {intake.status}</p>
+            <p className="text-sm text-zinc-500 capitalize">{intake.channel} inquiry · <span className="font-semibold text-zinc-800">{intake.status}</span></p>
           </div>
           <div className="flex items-center gap-3">
             <LeadScoreBadge score={intake.leadScore} />
@@ -195,7 +234,6 @@ export default function AIIntakeDetail() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6 mb-10">
-          {/* AI-Extracted Information */}
           <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-6">
               AI-Extracted Information
@@ -248,7 +286,6 @@ export default function AIIntakeDetail() {
             ))}
           </div>
 
-          {/* Original Message */}
           <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-6">
               Original Message
@@ -259,8 +296,7 @@ export default function AIIntakeDetail() {
           </div>
         </div>
 
-        {/* Actions */}
-        {!isFinal && (
+        {!isFinal ? (
           <div className="flex gap-4">
             <button
               onClick={handleReject}
@@ -282,6 +318,10 @@ export default function AIIntakeDetail() {
               )}
               Accept Lead → Generate Proposal
             </button>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-center text-sm text-zinc-500 font-medium">
+            This lead has already been marked as <span className="uppercase font-semibold text-zinc-800">{intake.status}</span>.
           </div>
         )}
       </motion.main>

@@ -1,10 +1,29 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import {
-  UserCircle, Building2, Globe2, BellRing, FileText, FolderKanban,
-  Users2, PlugZap, CreditCard, ShieldCheck, TriangleAlert, AlertCircle,
+  AlertCircle,
+  BellRing,
+  Bot,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  CreditCard,
+  FileText,
+  FolderKanban,
+  Globe2,
+  KeyRound,
+  PlugZap,
+  RefreshCw,
+  Settings2,
+  ShieldCheck,
+  TriangleAlert,
+  UserCircle,
+  Users2,
+  X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { settingsApi } from "@/lib/settings-api";
 import type { SettingsPayload } from "@/types/settings";
 import ProfileSettings from "@/components/settings/ProfileSettings";
@@ -13,166 +32,701 @@ import ClientPortalSettings from "@/components/settings/ClientPortalSettings";
 import NotificationsSettings from "@/components/settings/NotificationsSettings";
 import SecuritySettings from "@/components/settings/SecuritySettings";
 
+// ─── Navigation ──────────────────────────────────────────────────────────────
+
 const SETTINGS_NAV = [
   {
     group: "Personal",
     items: [
-      { id: "settings-profile", label: "Profile", icon: UserCircle },
-      { id: "settings-notifications", label: "Notifications", icon: BellRing },
-      { id: "settings-security", label: "Security", icon: ShieldCheck },
+      {
+        id: "settings-profile",
+        label: "Profile",
+        description: "Your name and personal account details",
+        icon: UserCircle,
+      },
+      {
+        id: "settings-notifications",
+        label: "Notifications",
+        description: "Control when RelunoOS gets your attention",
+        icon: BellRing,
+      },
+      {
+        id: "settings-security",
+        label: "Security",
+        description: "Account protection and access controls",
+        icon: ShieldCheck,
+      },
     ],
   },
   {
     group: "Workspace",
     items: [
-      { id: "settings-workspace", label: "Workspace", icon: Building2 },
-      { id: "settings-client-portal", label: "Client Portal", icon: Globe2 },
-      { id: "settings-proposal-defaults", label: "Proposal Defaults", icon: FileText },
-      { id: "settings-project-defaults", label: "Project Defaults", icon: FolderKanban },
-      { id: "settings-team-access", label: "Team & Access", icon: Users2 },
-      { id: "settings-integrations", label: "Integrations", icon: PlugZap },
-      { id: "settings-billing", label: "Billing", icon: CreditCard },
+      {
+        id: "settings-workspace",
+        label: "Workspace",
+        description: "Your company and workspace identity",
+        icon: Building2,
+      },
+      {
+        id: "settings-client-portal",
+        label: "Client Portal",
+        description: "What clients see when they sign in",
+        icon: Globe2,
+      },
+      {
+        id: "settings-proposal-defaults",
+        label: "Proposal defaults",
+        description: "Default terms and proposal content",
+        icon: FileText,
+      },
+      {
+        id: "settings-project-defaults",
+        label: "Project defaults",
+        description: "Default delivery and project settings",
+        icon: FolderKanban,
+      },
+      {
+        id: "settings-team-access",
+        label: "Team & access",
+        description: "Workspace members and permissions",
+        icon: Users2,
+      },
+      {
+        id: "settings-integrations",
+        label: "Integrations",
+        description: "Connected services and workflow tools",
+        icon: PlugZap,
+      },
+      {
+        id: "settings-billing",
+        label: "Billing",
+        description: "Plan, payment processing, and billing",
+        icon: CreditCard,
+      },
     ],
   },
   {
     group: "Advanced",
-    items: [{ id: "settings-danger-zone", label: "Danger Zone", icon: TriangleAlert }],
+    items: [
+      {
+        id: "settings-danger-zone",
+        label: "Danger zone",
+        description: "Irreversible workspace actions",
+        icon: TriangleAlert,
+      },
+    ],
   },
 ] as const;
 
-const ALL_ITEMS = SETTINGS_NAV.flatMap((g) => g.items);
+const ALL_ITEMS = SETTINGS_NAV.flatMap((group) => group.items);
 
-const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+type SettingsSectionId = (typeof ALL_ITEMS)[number]["id"];
 
-// Honest "not built yet" section — still gets a real heading + real id so
-// it participates in scroll nav, per the requirement that every listed
-// item corresponds to a real rendered section.
-const PendingSection = ({ id, title, description, note }: { id: string; title: string; description: string; note: string }) => (
-  <section id={id} className="scroll-mt-28">
-    <div className="mb-4">
-      <h2 className="text-lg font-bold text-zinc-900">{title}</h2>
-      <p className="text-sm text-zinc-500 mt-1">{description}</p>
+// ─── Motion ──────────────────────────────────────────────────────────────────
+
+const springTransition = {
+  type: "spring",
+  stiffness: 300,
+  damping: 28,
+} as const;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: springTransition,
+  },
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function scrollToSection(id: string) {
+  const element = document.getElementById(id);
+
+  if (!element) return;
+
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
+
+function getWorkspaceName(settings: SettingsPayload | null) {
+  if (!settings) return "Your workspace";
+
+  const record = settings as SettingsPayload & {
+    workspace?: {
+      name?: string | null;
+      companyName?: string | null;
+    };
+    profile?: {
+      company?: string | null;
+    };
+  };
+
+  return (
+    record.workspace?.name ||
+    record.workspace?.companyName ||
+    record.profile?.company ||
+    "Your workspace"
+  );
+}
+
+function getBillingConnected(settings: SettingsPayload | null) {
+  if (!settings) return false;
+
+  const record = settings as SettingsPayload & {
+    billing?: {
+      stripeConnected?: boolean;
+    };
+  };
+
+  return Boolean(record.billing?.stripeConnected);
+}
+
+// ─── Shared Components ───────────────────────────────────────────────────────
+
+function SettingsLoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-4 w-28 animate-pulse rounded bg-zinc-100" />
+            <div className="mt-2 h-3 w-64 animate-pulse rounded bg-zinc-100" />
+          </div>
+
+          <div className="h-8 w-16 animate-pulse rounded-lg bg-zinc-100" />
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div className="h-10 w-full animate-pulse rounded-lg bg-zinc-100" />
+          <div className="h-10 w-full animate-pulse rounded-lg bg-zinc-100" />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
+        <div className="h-4 w-36 animate-pulse rounded bg-zinc-100" />
+        <div className="mt-2 h-3 w-72 animate-pulse rounded bg-zinc-100" />
+
+        <div className="mt-6 space-y-3">
+          <div className="h-14 w-full animate-pulse rounded-lg bg-zinc-100" />
+          <div className="h-14 w-full animate-pulse rounded-lg bg-zinc-100" />
+          <div className="h-14 w-full animate-pulse rounded-lg bg-zinc-100" />
+        </div>
+      </div>
     </div>
-    <div className="rounded-2xl border border-zinc-100 bg-white p-8 text-center">
-      <p className="text-[13px] text-zinc-500">{note}</p>
+  );
+}
+
+function PendingSection({
+  id,
+  title,
+  description,
+  note,
+  icon: Icon,
+  actionLabel,
+  onAction,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  note: string;
+  icon: React.ElementType;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <section id={id} className="scroll-mt-28">
+      <div className="mb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+            <Icon size={16} strokeWidth={1.8} />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold tracking-[-0.02em] text-zinc-900">
+              {title}
+            </h2>
+
+            <p className="mt-1 text-xs leading-5 text-zinc-500">
+              {description}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold text-zinc-800">
+              This setting is not available yet
+            </p>
+
+            <p className="mt-1 max-w-xl text-[11px] leading-5 text-zinc-500">
+              {note}
+            </p>
+          </div>
+
+          {actionLabel && onAction && (
+            <button
+              type="button"
+              onClick={onAction}
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+            >
+              <Settings2 size={14} />
+              {actionLabel}
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SettingsErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-600">
+            <AlertCircle size={17} />
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-red-800">
+              Could not load settings
+            </p>
+
+            <p className="mt-1 max-w-xl text-xs leading-5 text-red-700">
+              {message}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-zinc-700"
+        >
+          <RefreshCw size={14} />
+          Try again
+        </button>
+      </div>
     </div>
-  </section>
-);
+  );
+}
+
+function SettingsSectionPlaceholder({
+  id,
+  title,
+  description,
+}: {
+  id: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <section id={id} className="scroll-mt-28">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold tracking-[-0.02em] text-zinc-900">
+          {title}
+        </h2>
+
+        <p className="mt-1 text-xs leading-5 text-zinc-500">
+          {description}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center">
+        <p className="text-xs text-zinc-500">
+          Connect settings data to continue.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function Account() {
   const { getToken } = useAuth();
+
   const [settings, setSettings] = useState<SettingsPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string>(ALL_ITEMS[0].id);
+
+  const [activeId, setActiveId] = useState<SettingsSectionId>(
+    ALL_ITEMS[0].id
+  );
+
   const mountedRef = useRef(true);
 
-  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = await getToken();
-      const data = await settingsApi.getAll(token);
-      if (mountedRef.current) setSettings(data);
-    } catch (e) {
-      if (mountedRef.current) setError(e instanceof Error ? e.message : "Unable to load settings");
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [getToken]);
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const load = useCallback(
+    async (showRefresh = false) => {
+      if (showRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-  // Scrollspy — active section tracks scroll position independent of data
-  // load state, so nav still works even if settings failed to fetch.
+      setError(null);
+
+      try {
+        const token = await getToken();
+        const data = await settingsApi.getAll(token);
+
+        if (mountedRef.current) {
+          setSettings(data);
+        }
+      } catch (requestError) {
+        if (mountedRef.current) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Unable to load settings."
+          );
+        }
+      } finally {
+        if (mountedRef.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [getToken]
+  );
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries.find((e) => e.isIntersecting);
-        if (visible) setActiveId(visible.target.id);
+        const visibleEntry = entries.find((entry) => entry.isIntersecting);
+
+        if (visibleEntry) {
+          setActiveId(visibleEntry.target.id as SettingsSectionId);
+        }
       },
-      { rootMargin: "-20% 0px -65% 0px" }
+      {
+        rootMargin: "-18% 0px -70% 0px",
+      }
     );
+
     ALL_ITEMS.forEach((item) => {
-      const el = document.getElementById(item.id);
-      if (el) observer.observe(el);
+      const element = document.getElementById(item.id);
+
+      if (element) {
+        observer.observe(element);
+      }
     });
+
     return () => observer.disconnect();
-  }, [loading, error]); // re-observe once sections actually exist in the DOM
+  }, [error, loading, settings]);
+
+  const workspaceName = getWorkspaceName(settings);
+  const stripeConnected = getBillingConnected(settings);
+
+  const handleNavClick = (id: SettingsSectionId) => {
+    setActiveId(id);
+    scrollToSection(id);
+  };
+
+  const handleRefresh = async () => {
+    await load(true);
+    toast.success("Settings refreshed.");
+  };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-zinc-900">
+    <div className="min-h-screen bg-[#fafafa] text-zinc-900 selection:bg-zinc-200">
       <style>{`
         @import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap");
-        .font-serif { font-family: 'DM Serif Display', serif; }
-        * { font-family: 'DM Sans', sans-serif; }
+
+        .font-serif {
+          font-family: "DM Serif Display", serif;
+        }
+
+        * {
+          font-family: "DM Sans", sans-serif;
+        }
+
+        .hide-scrollbar {
+          scrollbar-width: none;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
 
-      <div className="max-w-7xl mx-auto px-6 sm:px-12 pt-16 pb-24">
-        <div className="mb-8">
-          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Settings</p>
-          <h1 className="font-serif text-4xl font-bold text-zinc-900 tracking-tight">Settings</h1>
-          <p className="text-sm text-zinc-500 mt-2">Manage your personal account, workspace preferences, client experience, and billing.</p>
-        </div>
+      <motion.main
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full px-5 pb-24 pt-10 sm:px-8 lg:px-12 lg:pt-12"
+      >
+        {/* Header */}
+        <motion.section
+          variants={itemVariants}
+          className="mb-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
+        >
+          <div>
+            <p className="text-[11px] font-semibold text-zinc-400">
+              Account and workspace controls
+            </p>
 
-        {error && (
-          <div className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-red-500 shrink-0" />
-              <div>
-                <p className="text-[13px] font-semibold text-red-700">Unable to load settings</p>
-                <p className="text-[12px] text-red-600">{error}</p>
-              </div>
-            </div>
-            <button type="button" onClick={load} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-[12px] font-semibold hover:bg-red-700 transition-all shrink-0">
-              Try Again
+            <h1 className="mt-2 font-serif text-4xl font-bold tracking-[-0.045em] text-zinc-900 sm:text-5xl">
+              Settings
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
+              Manage your personal account, workspace preferences, client
+              experience, access controls, integrations, and billing from one
+              place.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleNavClick("settings-security")}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              <ShieldCheck size={14} className="text-zinc-500" />
+              Security
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleRefresh()}
+              disabled={refreshing}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw
+                size={14}
+                className={refreshing ? "animate-spin" : undefined}
+              />
+              Refresh
             </button>
           </div>
-        )}
+        </motion.section>
 
-        {/* Mobile section nav */}
-        <div className="lg:hidden mb-6">
-          <select
-            value={activeId}
-            onChange={(e) => scrollTo(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 bg-white text-sm outline-none"
-            aria-label="Jump to settings section"
+        {/* Workspace Summary */}
+        <motion.section
+          variants={itemVariants}
+          className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <button
+            type="button"
+            onClick={() => handleNavClick("settings-workspace")}
+            className="group rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:shadow-sm"
           >
-            {SETTINGS_NAV.map((group) => (
-              <optgroup key={group.group} label={group.group}>
-                {group.items.map((item) => (
-                  <option key={item.id} value={item.id}>{item.label}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-zinc-500">
+                Workspace
+              </span>
 
-        <div className="grid lg:grid-cols-[230px_1fr] gap-10">
-          {/* Desktop scroll nav */}
-          <aside className="hidden lg:block">
-            <nav className="sticky top-10 space-y-6">
+              <Building2
+                size={15}
+                className="text-zinc-400 transition-colors group-hover:text-zinc-700"
+              />
+            </div>
+
+            <p className="mt-4 truncate font-serif text-2xl font-bold leading-none tracking-tight text-zinc-900">
+              {loading ? "…" : workspaceName}
+            </p>
+
+            <p className="mt-2 text-[11px] text-zinc-400">
+              Company identity and workspace details
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleNavClick("settings-client-portal")}
+            className="group rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:shadow-sm"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-zinc-500">
+                Client Portal
+              </span>
+
+              <Globe2
+                size={15}
+                className="text-zinc-400 transition-colors group-hover:text-zinc-700"
+              />
+            </div>
+
+            <p className="mt-4 font-serif text-2xl font-bold leading-none tracking-tight text-zinc-900">
+              Configure
+            </p>
+
+            <p className="mt-2 text-[11px] text-zinc-400">
+              Client-facing project and invoice access
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleNavClick("settings-security")}
+            className="group rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:shadow-sm"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-zinc-500">
+                Account security
+              </span>
+
+              <ShieldCheck
+                size={15}
+                className="text-zinc-400 transition-colors group-hover:text-zinc-700"
+              />
+            </div>
+
+            <p className="mt-4 font-serif text-2xl font-bold leading-none tracking-tight text-zinc-900">
+              Review
+            </p>
+
+            <p className="mt-2 text-[11px] text-zinc-400">
+              Authentication and account protection
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleNavClick("settings-billing")}
+            className="group rounded-xl border border-zinc-200 bg-white p-4 text-left transition-all hover:border-zinc-300 hover:shadow-sm"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-zinc-500">
+                Billing
+              </span>
+
+              <CreditCard
+                size={15}
+                className="text-zinc-400 transition-colors group-hover:text-zinc-700"
+              />
+            </div>
+
+            <p className="mt-4 font-serif text-2xl font-bold leading-none tracking-tight text-zinc-900">
+              {loading ? "…" : stripeConnected ? "Connected" : "Set up"}
+            </p>
+
+            <p className="mt-2 text-[11px] text-zinc-400">
+              Stripe payments and workspace billing
+            </p>
+          </button>
+        </motion.section>
+
+        {/* Mobile Navigation */}
+        <motion.section variants={itemVariants} className="mb-6 lg:hidden">
+          <label
+            htmlFor="settings-section-nav"
+            className="mb-2 block text-[11px] font-semibold text-zinc-500"
+          >
+            Jump to a settings section
+          </label>
+
+          <div className="relative">
+            <select
+              id="settings-section-nav"
+              value={activeId}
+              onChange={(event) => {
+                handleNavClick(event.target.value as SettingsSectionId);
+              }}
+              className="h-10 w-full appearance-none rounded-lg border border-zinc-200 bg-white px-3 pr-10 text-sm text-zinc-800 outline-none transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/5"
+            >
               {SETTINGS_NAV.map((group) => (
-                <div key={group.group}>
-                  <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-1.5">{group.group}</p>
-                  <div className="space-y-0.5">
+                <optgroup key={group.group} label={group.group}>
+                  {group.items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+
+            <ChevronDown
+              size={16}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
+            />
+          </div>
+        </motion.section>
+
+        <div className="grid gap-8 lg:grid-cols-[230px_minmax(0,1fr)] xl:gap-12">
+          {/* Desktop Navigation */}
+          <aside className="hidden lg:block">
+            <nav className="sticky top-8">
+              {SETTINGS_NAV.map((group, groupIndex) => (
+                <div
+                  key={group.group}
+                  className={cn(groupIndex > 0 && "mt-6")}
+                >
+                  <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+                    {group.group}
+                  </p>
+
+                  <div className="space-y-1">
                     {group.items.map((item) => {
                       const Icon = item.icon;
                       const active = activeId === item.id;
+
                       return (
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => scrollTo(item.id)}
-                          aria-current={active ? "true" : undefined}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-colors text-left ${
-                            active ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                          }`}
+                          onClick={() => handleNavClick(item.id)}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors",
+                            active
+                              ? "bg-zinc-900 text-white"
+                              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                          )}
                         >
-                          <Icon size={15} />
-                          {item.label}
+                          <Icon
+                            size={15}
+                            strokeWidth={1.8}
+                            className={cn(
+                              "shrink-0",
+                              active
+                                ? "text-white"
+                                : "text-zinc-400 group-hover:text-zinc-700"
+                            )}
+                          />
+
+                          <span className="min-w-0 flex-1 truncate">
+                            {item.label}
+                          </span>
                         </button>
                       );
                     })}
@@ -182,83 +736,276 @@ export default function Account() {
             </nav>
           </aside>
 
-          {/* Continuous content */}
-          <div className="min-w-0 max-w-[860px] space-y-14">
-            {loading && !settings ? (
-              <>
-                <div className="h-32 rounded-2xl bg-white border border-zinc-100 animate-pulse" />
-                <div className="h-48 rounded-2xl bg-white border border-zinc-100 animate-pulse" />
-              </>
-            ) : settings ? (
-              <>
-                <section id="settings-profile" className="scroll-mt-28">
-                  <ProfileSettings settings={settings} />
-                </section>
-                <section id="settings-notifications" className="scroll-mt-28">
-                  <NotificationsSettings settings={settings} />
-                </section>
-                <section id="settings-security" className="scroll-mt-28">
-                  <SecuritySettings settings={settings} />
-                </section>
-                <section id="settings-workspace" className="scroll-mt-28">
-                  <WorkspaceSettingsPanel settings={settings} onSaved={load} />
-                </section>
-                <section id="settings-client-portal" className="scroll-mt-28">
-                  <ClientPortalSettings settings={settings} onSaved={load} />
-                </section>
-                <PendingSection
-                  id="settings-proposal-defaults"
-                  title="Proposal defaults"
-                  description="Set the baseline terms and content used when you create new proposals."
-                  note="Proposal default settings are being connected — check back shortly."
-                />
-                <PendingSection
-                  id="settings-project-defaults"
-                  title="Project defaults"
-                  description="Configure how new projects and tasks are created in your workspace."
-                  note="Project default settings are being connected — check back shortly."
-                />
-                <PendingSection
-                  id="settings-team-access"
-                  title="Team & access"
-                  description="Manage how your team collaborates in this workspace."
-                  note="Team workspaces are coming soon — available when Clerk Organizations is enabled for this app."
-                />
-                <PendingSection
-                  id="settings-integrations"
-                  title="Integrations"
-                  description="Connect the services that power your agency workflows."
-                  note="A detailed integrations view (Clerk, Stripe, Gemini, Resend) is being connected — check back shortly."
-                />
-                <PendingSection
-                  id="settings-billing"
-                  title="Billing"
-                  description="Manage your RelunoOS plan, payment method, and billing history."
-                  note={settings.billing.stripeConnected ? "Billing controls are being connected — check back shortly." : "Stripe billing is not connected yet. Billing controls will become available once your Stripe connection is complete."}
-                />
-                <PendingSection
-                  id="settings-danger-zone"
-                  title="Danger zone"
-                  description="Irreversible actions for your workspace."
-                  note="Workspace export and deletion are currently handled by support. Contact support to request these actions."
-                />
-              </>
-            ) : (
-              // Sections still render with real ids/headings so nav works,
-              // even with zero data — per the requirement that nav must
-              // function even when settings fail to load.
-              ALL_ITEMS.map((item) => (
-                <section key={item.id} id={item.id} className="scroll-mt-28">
-                  <h2 className="text-lg font-bold text-zinc-900">{item.label}</h2>
-                  <div className="mt-4 rounded-2xl border border-zinc-100 bg-white p-8 text-center">
-                    <p className="text-[13px] text-zinc-400">Connect settings data to continue.</p>
+          {/* Settings Content */}
+          <div className="min-w-0 max-w-[900px]">
+            <AnimatePresence mode="wait">
+              {error ? (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
+                  <SettingsErrorState
+                    message={error}
+                    onRetry={() => void load()}
+                  />
+
+                  <div className="mt-8 space-y-10">
+                    {ALL_ITEMS.map((item) => (
+                      <SettingsSectionPlaceholder
+                        key={item.id}
+                        id={item.id}
+                        title={item.label}
+                        description={item.description}
+                      />
+                    ))}
                   </div>
-                </section>
-              ))
-            )}
+                </motion.div>
+              ) : loading && !settings ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <SettingsLoadingSkeleton />
+                </motion.div>
+              ) : settings ? (
+                <motion.div
+                  key="settings"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22 }}
+                  className="space-y-12"
+                >
+                  {/* Personal */}
+                  <section id="settings-profile" className="scroll-mt-28">
+                    <div className="mb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                          <UserCircle size={16} strokeWidth={1.8} />
+                        </div>
+
+                        <div>
+                          <h2 className="text-lg font-semibold tracking-[-0.02em] text-zinc-900">
+                            Profile
+                          </h2>
+
+                          <p className="mt-1 text-xs leading-5 text-zinc-500">
+                            Update the personal details used throughout your
+                            workspace.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ProfileSettings settings={settings} />
+                  </section>
+
+                  <section
+                    id="settings-notifications"
+                    className="scroll-mt-28"
+                  >
+                    <div className="mb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                          <BellRing size={16} strokeWidth={1.8} />
+                        </div>
+
+                        <div>
+                          <h2 className="text-lg font-semibold tracking-[-0.02em] text-zinc-900">
+                            Notifications
+                          </h2>
+
+                          <p className="mt-1 text-xs leading-5 text-zinc-500">
+                            Choose the client and workspace events worth
+                            receiving.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <NotificationsSettings settings={settings} />
+                  </section>
+
+                  <section id="settings-security" className="scroll-mt-28">
+                    <div className="mb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                          <KeyRound size={16} strokeWidth={1.8} />
+                        </div>
+
+                        <div>
+                          <h2 className="text-lg font-semibold tracking-[-0.02em] text-zinc-900">
+                            Security
+                          </h2>
+
+                          <p className="mt-1 text-xs leading-5 text-zinc-500">
+                            Review authentication and security preferences for
+                            your account.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <SecuritySettings settings={settings} />
+                  </section>
+
+                  {/* Workspace */}
+                  <section id="settings-workspace" className="scroll-mt-28">
+                    <div className="mb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                          <Building2 size={16} strokeWidth={1.8} />
+                        </div>
+
+                        <div>
+                          <h2 className="text-lg font-semibold tracking-[-0.02em] text-zinc-900">
+                            Workspace
+                          </h2>
+
+                          <p className="mt-1 text-xs leading-5 text-zinc-500">
+                            Set the company details and preferences that define
+                            this workspace.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <WorkspaceSettingsPanel
+                      settings={settings}
+                      onSaved={() => void load(true)}
+                    />
+                  </section>
+
+                  <section
+                    id="settings-client-portal"
+                    className="scroll-mt-28"
+                  >
+                    <div className="mb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                          <Globe2 size={16} strokeWidth={1.8} />
+                        </div>
+
+                        <div>
+                          <h2 className="text-lg font-semibold tracking-[-0.02em] text-zinc-900">
+                            Client Portal
+                          </h2>
+
+                          <p className="mt-1 text-xs leading-5 text-zinc-500">
+                            Configure how clients experience shared projects,
+                            updates, and invoices.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ClientPortalSettings
+                      settings={settings}
+                      onSaved={() => void load(true)}
+                    />
+                  </section>
+
+                  <PendingSection
+                    id="settings-proposal-defaults"
+                    title="Proposal defaults"
+                    description="Set the baseline language and terms used when creating new proposals."
+                    note="Proposal defaults are not connected yet. This section will control reusable proposal terms, scope templates, and default payment language."
+                    icon={FileText}
+                  />
+
+                  <PendingSection
+                    id="settings-project-defaults"
+                    title="Project defaults"
+                    description="Configure how new projects and task structures begin in your workspace."
+                    note="Project defaults are not connected yet. This section will support task templates, delivery phases, project health rules, and default due-date behavior."
+                    icon={FolderKanban}
+                  />
+
+                  <PendingSection
+                    id="settings-team-access"
+                    title="Team & access"
+                    description="Manage workspace members, roles, and collaboration permissions."
+                    note="Team workspaces are not enabled yet. This section becomes available when Clerk Organizations and workspace membership are configured."
+                    icon={Users2}
+                  />
+
+                  <PendingSection
+                    id="settings-integrations"
+                    title="Integrations"
+                    description="Connect the services that support your client operations."
+                    note="The dedicated integration controls for Clerk, Stripe, Gemini, and Resend are not connected yet."
+                    icon={PlugZap}
+                  />
+
+                  <PendingSection
+                    id="settings-billing"
+                    title="Billing"
+                    description="Manage your RelunoOS plan and payment collection settings."
+                    note={
+                      stripeConnected
+                        ? "Stripe is connected. Detailed billing controls, payment settings, and invoice collection preferences are being connected."
+                        : "Stripe is not connected yet. Connect a payment provider before enabling client payment collection."
+                    }
+                    icon={CreditCard}
+                  />
+
+                  <PendingSection
+                    id="settings-danger-zone"
+                    title="Danger zone"
+                    description="Irreversible actions for this workspace and its operational data."
+                    note="Workspace export and deletion controls are intentionally unavailable in the app right now. Contact support for sensitive workspace deletion or export requests."
+                    icon={TriangleAlert}
+                  />
+
+                  {/* AI workflow note */}
+                  <section className="scroll-mt-28">
+                    <div className="rounded-xl border border-zinc-200 bg-white p-5">
+                      <div className="flex items-start gap-3">
+                        <Bot
+                          size={16}
+                          className="mt-0.5 shrink-0 text-zinc-400"
+                        />
+
+                        <div>
+                          <p className="text-xs font-semibold text-zinc-800">
+                            AI workflow preferences are coming next.
+                          </p>
+
+                          <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+                            AI Intake, proposal drafting, workspace summaries,
+                            and automation controls will live here once the AI
+                            service is connected. Important client-facing
+                            actions should always remain reviewable before they
+                            are sent.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-10"
+                >
+                  {ALL_ITEMS.map((item) => (
+                    <SettingsSectionPlaceholder
+                      key={item.id}
+                      id={item.id}
+                      title={item.label}
+                      description={item.description}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </div>
+      </motion.main>
     </div>
   );
 }
