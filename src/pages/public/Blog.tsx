@@ -174,35 +174,28 @@ export default function Blog() {
 
       <main>
         {/* Hero */}
-        <section className="hero-grid relative isolate overflow-hidden border-b border-blue-700 pb-20 pt-36 text-white sm:pb-24 sm:pt-44">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,rgba(3,26,117,0.65)_70%,rgba(1,11,51,0.9)_100%)]" />
-          <div className="hero-stripes pointer-events-none absolute inset-0 opacity-40" />
-          <div className="pointer-events-none absolute left-1/2 top-1/3 h-[460px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/25 blur-[120px]" />
+<section className="hero-grid relative isolate overflow-hidden border-b border-blue-700 pb-20 pt-36 text-white sm:pb-24 sm:pt-44">
+  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,rgba(3,26,117,0.65)_70%,rgba(1,11,51,0.9)_100%)]" />
+  <div className="hero-stripes pointer-events-none absolute inset-0 opacity-40" />
+  <div className="pointer-events-none absolute left-1/2 top-1/3 h-[460px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/25 blur-[120px]" />
 
-          <div className="relative mx-auto max-w-5xl px-6 text-center sm:px-10">
-            <p className="inline-flex items-center gap-2 rounded-lg border border-blue-400/40 bg-blue-600/60 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100 backdrop-blur-md">
-              <BookOpen size={12} />
-              Resources
-            </p>
+  <div className="relative mx-auto max-w-5xl px-6 text-center sm:px-10">
+    <p className="inline-flex items-center rounded-lg border border-blue-400/40 bg-blue-600/60 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100 backdrop-blur-md">
+      Resources
+    </p>
 
-            <h1 className="mt-7 text-5xl font-bold leading-[0.98] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
-              Ideas for calmer client operations.
-            </h1>
+    <h1 className="mt-7 text-5xl font-bold leading-[0.98] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+      Ideas for calmer client operations.
+    </h1>
 
-            <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-blue-100 sm:text-lg">
-              Practical workflow guides, product comparisons, and operational
-              insights for agencies, freelancers, and client-service teams.
-            </p>
+    <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-blue-100 sm:text-lg">
+      Practical workflow guides, product comparisons, and operational
+      insights for agencies, freelancers, and client-service teams.
+    </p>
+  </div>
+</section>
 
-            <div className="mx-auto mt-9 flex max-w-xl items-center rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
-              <Search size={17} className="text-blue-100/70" />
-              <input
-                placeholder="Search resources"
-                className="ml-3 w-full bg-transparent text-sm text-white outline-none placeholder:text-blue-100/65"
-              />
-            </div>
-          </div>
-        </section>
+
 
         {/* Featured article */}
         <section className="bg-white px-6 py-20 sm:px-10 sm:py-24">
