@@ -16,7 +16,6 @@ import {
   Clock,
   FolderKanban,
   ListTodo,
-  PauseCircle,
   Plus,
   RefreshCw,
   Search,
@@ -45,8 +44,6 @@ import ProjectCard, {
 } from "../components/projects/ProjectCard";
 import CreateProjectDialog from "../components/projects/CreateProjectDialog";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type ProjectStatus =
   | "all"
   | "ACTIVE"
@@ -58,14 +55,14 @@ interface ProjectListItemWithOptionalDates extends ProjectListItem {
   createdAt?: string | null;
   updatedAt?: string | null;
   completedAt?: string | null;
-  dueDate?: string | null;
-  endDate?: string | null;
   startDate?: string | null;
+  targetDate?: string | null;
   health?: string | null;
-  upcomingTaskCount?: number | null;
-  openTaskCount?: number | null;
+  progress?: number | null;
+  taskCount?: number | null;
+  milestoneCount?: number | null;
   completedTaskCount?: number | null;
-  totalTaskCount?: number | null;
+  upcomingTaskCount?: number | null;
   clientId?: string | null;
   clientName?: string | null;
   client?: {
@@ -112,8 +109,6 @@ const STATUS_TABS: {
   { value: "COMPLETED", label: "Completed" },
 ];
 
-// ─── Motion ───────────────────────────────────────────────────────────────────
-
 const springTransition = {
   type: "spring",
   stiffness: 300,
@@ -139,8 +134,6 @@ const itemVariants = {
     transition: springTransition,
   },
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalizeStatus(status?: string | null) {
   return String(status || "ACTIVE")
@@ -174,13 +167,11 @@ function matchesStatus(
     return true;
   }
 
-  const projectStatus = normalizeStatus(project.status);
-
   if (filter === "AT_RISK") {
     return isAtRisk(project);
   }
 
-  return projectStatus === filter;
+  return normalizeStatus(project.status) === filter;
 }
 
 function getDateValue(value?: string | null) {
@@ -225,7 +216,6 @@ function getProjectSearchText(project: ProjectListItemWithOptionalDates) {
     name?: string | null;
     title?: string | null;
     description?: string | null;
-    clientName?: string | null;
   };
 
   return [
@@ -241,18 +231,7 @@ function getProjectSearchText(project: ProjectListItemWithOptionalDates) {
     .toLowerCase();
 }
 
-function getProjectTitle(project: ProjectListItemWithOptionalDates) {
-  const projectRecord = project as ProjectListItemWithOptionalDates & {
-    name?: string | null;
-    title?: string | null;
-  };
-
-  return projectRecord.name || projectRecord.title || "Untitled project";
-}
-
-function sortProjectsByRecent(
-  projects: ProjectListItemWithOptionalDates[]
-) {
+function sortProjectsByRecent(projects: ProjectListItemWithOptionalDates[]) {
   return [...projects].sort((a, b) => {
     const aDate =
       getDateValue(a.updatedAt) ||
@@ -317,8 +296,6 @@ function buildProjectTrendData(
     };
   });
 }
-
-// ─── Components ───────────────────────────────────────────────────────────────
 
 function MetricCard({
   label,
@@ -672,8 +649,6 @@ function ProjectTrendChart({
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function Projects() {
   const navigate = useNavigate();
   const { getToken } = useAuth();
@@ -787,9 +762,9 @@ export default function Projects() {
     );
 
     const dueThisWeek = allProjects.filter((project) => {
-      const dueDate = getDateValue(project.dueDate || project.endDate);
+      const targetDate = getDateValue(project.targetDate);
 
-      return dueDate ? isWithinNextSevenDays(dueDate) : false;
+      return targetDate ? isWithinNextSevenDays(targetDate) : false;
     }).length;
 
     const completedThisMonth = completed.filter((project) => {
@@ -801,10 +776,10 @@ export default function Projects() {
     }).length;
 
     const activeTaskCount = allProjects.reduce((total, project) => {
-      const directOpenCount = Number(project.openTaskCount || 0);
-      const upcomingCount = Number(project.upcomingTaskCount || 0);
+      const taskCount = Number(project.taskCount || 0);
+      const completedTaskCount = Number(project.completedTaskCount || 0);
 
-      return total + Math.max(directOpenCount, upcomingCount);
+      return total + Math.max(0, taskCount - completedTaskCount);
     }, 0);
 
     return {
@@ -923,7 +898,6 @@ export default function Projects() {
         animate="visible"
         className="w-full px-5 pb-24 pt-10 sm:px-8 lg:px-12 lg:pt-12"
       >
-        {/* Header */}
         <motion.section
           variants={itemVariants}
           className="mb-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
@@ -977,7 +951,6 @@ export default function Projects() {
           </div>
         </motion.section>
 
-        {/* Metrics */}
         <motion.section
           variants={itemVariants}
           className="mb-10 grid grid-cols-2 gap-3 xl:grid-cols-4"
@@ -1026,7 +999,6 @@ export default function Projects() {
           )}
         </motion.section>
 
-        {/* Search and filters */}
         <motion.section variants={itemVariants} className="mb-6">
           <div className="rounded-xl border border-zinc-200 bg-white">
             <div className="flex flex-col gap-4 border-b border-zinc-100 bg-zinc-50/40 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
@@ -1117,7 +1089,6 @@ export default function Projects() {
           </div>
         </motion.section>
 
-        {/* Project grid */}
         <motion.section variants={itemVariants}>
           {error ? (
             <ErrorState
@@ -1149,122 +1120,129 @@ export default function Projects() {
           )}
         </motion.section>
 
-        {/* Insights */}
-        <motion.section variants={itemVariants} className="mt-10">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-zinc-900">
-                Delivery insights
-              </p>
-
-              <p className="mt-1 text-xs leading-5 text-zinc-500">
-                See delivery volume, project health, and the balance of work
-                across your active engagements.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate("/analytics")}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900"
-            >
-              View analytics
-              <ArrowRight size={13} />
-            </button>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="rounded-xl border border-zinc-200 bg-white p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        {!error && !loading && (
+          <>
+            <motion.section variants={itemVariants} className="mt-10">
+              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-zinc-900">
-                    Project volume
+                    Delivery insights
                   </p>
 
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    Cumulative projects created over the latest six months.
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    See delivery volume, project health, and the balance of work
+                    across your active engagements.
                   </p>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
-                  <TrendingUp size={14} />
-                  {metrics.total} total projects
-                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/analytics")}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+                >
+                  View analytics
+                  <ArrowRight size={13} />
+                </button>
               </div>
 
-              <div className="mt-5 h-[250px]">
-                <ProjectTrendChart data={trendChartData} />
-              </div>
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+                <div className="rounded-xl border border-zinc-200 bg-white p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-900">
+                        Project volume
+                      </p>
 
-              <p className="mt-3 text-[11px] leading-5 text-zinc-400">
-                Project volume uses project creation dates when available.
-              </p>
-            </div>
+                      <p className="mt-1 text-[11px] text-zinc-500">
+                        Cumulative projects created over the latest six months.
+                      </p>
+                    </div>
 
-            <div className="rounded-xl border border-zinc-200 bg-white p-5">
-              <div>
-                <p className="text-sm font-semibold text-zinc-900">
-                  Delivery health
-                </p>
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
+                      <TrendingUp size={14} />
+                      {metrics.total} total projects
+                    </div>
+                  </div>
 
-                <p className="mt-1 text-[11px] text-zinc-500">
-                  Current balance of active delivery, at-risk work, paused
-                  projects, and completed engagements.
-                </p>
-              </div>
+                  <div className="mt-5 h-[250px]">
+                    <ProjectTrendChart data={trendChartData} />
+                  </div>
 
-              <ProjectStatusChart
-                data={statusChartData}
-                total={metrics.total}
-              />
-
-              <div className="border-t border-zinc-100 pt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-zinc-500">
-                    Completion rate
-                  </span>
-
-                  <span className="font-serif text-xl font-bold text-zinc-900">
-                    {completedRate}%
-                  </span>
+                  <p className="mt-3 text-[11px] leading-5 text-zinc-400">
+                    Project volume uses project creation dates when available.
+                  </p>
                 </div>
 
-                <p className="mt-2 text-[11px] leading-5 text-zinc-400">
-                  {metrics.total === 0
-                    ? "Create a project to start tracking delivery outcomes."
-                    : `${metrics.completed} of ${metrics.total} project${
-                        metrics.total === 1 ? "" : "s"
-                      } are complete. ${
-                        metrics.atRisk > 0
-                          ? `${metrics.atRisk} ${
-                              metrics.atRisk === 1 ? "project needs" : "projects need"
-                            } attention.`
-                          : "No projects are currently marked at risk."
-                      }`}
-                </p>
+                <div className="rounded-xl border border-zinc-200 bg-white p-5">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-900">
+                      Delivery health
+                    </p>
+
+                    <p className="mt-1 text-[11px] text-zinc-500">
+                      Current balance of active delivery, at-risk work, paused
+                      projects, and completed engagements.
+                    </p>
+                  </div>
+
+                  <ProjectStatusChart
+                    data={statusChartData}
+                    total={metrics.total}
+                  />
+
+                  <div className="border-t border-zinc-100 pt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-zinc-500">
+                        Completion rate
+                      </span>
+
+                      <span className="font-serif text-xl font-bold text-zinc-900">
+                        {completedRate}%
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-[11px] leading-5 text-zinc-400">
+                      {metrics.total === 0
+                        ? "Create a project to start tracking delivery outcomes."
+                        : `${metrics.completed} of ${metrics.total} project${
+                            metrics.total === 1 ? "" : "s"
+                          } are complete. ${
+                            metrics.atRisk > 0
+                              ? `${metrics.atRisk} ${
+                                  metrics.atRisk === 1
+                                    ? "project needs"
+                                    : "projects need"
+                                } attention.`
+                              : "No projects are currently marked at risk."
+                          }`}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </motion.section>
+            </motion.section>
 
-        {/* Workflow hint */}
-        <motion.section variants={itemVariants} className="mt-6">
-          <div className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4">
-            <ListTodo size={16} className="mt-0.5 shrink-0 text-zinc-400" />
+            <motion.section variants={itemVariants} className="mt-6">
+              <div className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4">
+                <ListTodo
+                  size={16}
+                  className="mt-0.5 shrink-0 text-zinc-400"
+                />
 
-            <div>
-              <p className="text-xs font-semibold text-zinc-800">
-                Keep delivery work connected.
-              </p>
+                <div>
+                  <p className="text-xs font-semibold text-zinc-800">
+                    Keep delivery work connected.
+                  </p>
 
-              <p className="mt-1 text-[11px] leading-5 text-zinc-500">
-                Convert signed proposals into projects, track progress and
-                tasks, then invoice completed work without rebuilding client
-                context.
-              </p>
-            </div>
-          </div>
-        </motion.section>
+                  <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+                    Convert signed proposals into projects, track progress and
+                    tasks, then invoice completed work without rebuilding client
+                    context.
+                  </p>
+                </div>
+              </div>
+            </motion.section>
+          </>
+        )}
       </motion.main>
 
       <CreateProjectDialog
