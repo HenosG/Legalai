@@ -30,10 +30,15 @@ router.get('/', async (req: any, res) => {
       ];
     }
 
-    const intakes = await prisma.aIIntake.findMany({
+    const intakesRaw = await prisma.aIIntake.findMany({
       where,
       orderBy: { createdAt: 'desc' }
     });
+
+    const intakes = intakesRaw.map(intake => ({
+      ...intake,
+      leadScore: (intake as any).leadScore ?? intake.score ?? 75
+    }));
 
     res.json({ intakes });
   } catch (error: any) {
@@ -87,7 +92,6 @@ router.get('/:id', async (req: any, res) => {
       return res.status(404).json({ error: "Intake record not found" });
     }
 
-    // Format budget as a readable string for frontend state safely
     const formattedBudget = intake.budgetMin && intake.budgetMax 
       ? `$${intake.budgetMin.toLocaleString()} - $${intake.budgetMax.toLocaleString()}`
       : intake.budgetMin 
@@ -98,6 +102,7 @@ router.get('/:id', async (req: any, res) => {
 
     const responsePayload = {
       ...intake,
+      leadScore: (intake as any).leadScore ?? intake.score ?? 75,
       budget: formattedBudget,
       timeline: intake.timeline || '—',
       metadata: {
@@ -140,7 +145,7 @@ router.post('/', async (req: any, res) => {
         "scopeSummary": "a concise 2-3 sentence summary of what the client wants built or done",
         "estimatedBudget": { "min": number, "max": number, "currency": "USD" },
         "timeline": "extract explicit timeline or target launch date/event or null if missing",
-        "leadScore": number between 1 and 100,
+        "leadScore": number between 1 and 100 based on budget size, project clarity, and urgency,
         "qualified": boolean,
         "urgency": "low" | "medium" | "high",
         "confidence": {
@@ -162,6 +167,7 @@ router.post('/', async (req: any, res) => {
 
     const budgetMin = parsed.estimatedBudget?.min || null;
     const budgetMax = parsed.estimatedBudget?.max || null;
+    const computedScore = typeof parsed.leadScore === 'number' ? parsed.leadScore : 75;
 
     const newIntake = await prisma.aIIntake.create({
       data: {
@@ -174,7 +180,7 @@ router.post('/', async (req: any, res) => {
         timeline: parsed.timeline || null,
         budgetMin: typeof budgetMin === 'number' ? budgetMin : null,
         budgetMax: typeof budgetMax === 'number' ? budgetMax : null,
-        score: parsed.leadScore || 50,
+        score: computedScore,
         status: 'PENDING_REVIEW',
         confidence: parsed.confidence || {},
         rawMessage
@@ -191,7 +197,10 @@ router.post('/', async (req: any, res) => {
       }
     });
 
-    return res.status(201).json(newIntake);
+    return res.status(201).json({
+      ...newIntake,
+      leadScore: computedScore
+    });
   } catch (error: any) {
     console.error("❌ AI Intake Processing Error:", error.message);
     return res.status(500).json({ error: "Failed to process AI intake", details: error.message });
@@ -236,6 +245,7 @@ router.patch('/:id', async (req: any, res) => {
 
     res.json({
       ...freshRecord,
+      leadScore: (freshRecord as any).leadScore ?? freshRecord?.score ?? 75,
       budget: formattedBudget,
       timeline: freshRecord?.timeline || '—',
       metadata: { confidence: freshRecord?.confidence || {} }
@@ -343,7 +353,10 @@ router.post('/:id/reject', async (req: any, res) => {
       }
     });
 
-    return res.json(updated);
+    return res.json({
+      ...updated,
+      leadScore: (updated as any).leadScore ?? updated.score ?? 75
+    });
   } catch (error: any) {
     console.error("❌ Error rejecting intake:", error.message);
     return res.status(500).json({ error: "Failed to reject intake", details: error.message });
@@ -373,7 +386,7 @@ router.post('/:id/proposal', async (req: any, res) => {
 
     const proposalData: any = {
       user: { connect: { id: userId } },
-      intake: { connect: { id: intake.id } }, // Fixed relation connection for intake
+      intake: { connect: { id: intake.id } },
       title: `${intake.projectType || 'Project'} Proposal for ${intake.contactName}`,
       amount: proposalAmount,
       status: 'DRAFT',
@@ -381,7 +394,6 @@ router.post('/:id/proposal', async (req: any, res) => {
       timeline: intake.timeline || null,
     };
 
-    // If a client was already created or linked, connect it
     if (intake.clientId) {
       proposalData.client = { connect: { id: intake.clientId } };
     }
@@ -404,6 +416,46 @@ router.post('/:id/proposal', async (req: any, res) => {
   } catch (error: any) {
     console.error("❌ Error generating proposal from intake:", error.message);
     return res.status(500).json({ error: "Failed to generate proposal", details: error.message });
+  }
+});
+
+// --- 8. Delete AI Intake Endpoint ---
+router.delete('/:id', async (req: any, res) => {
+  try {
+    const auth = req.auth ? (typeof req.auth === 'function' ? req.auth() : req.auth) : null;
+    const userId = auth?.userId || req.body.userId || req.query.userId;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const intake = await prisma.aIIntake.findFirst({
+      where: { id, userId }
+    });
+
+    if (!intake) {
+      return res.status(404).json({ error: "Intake record not found" });
+    }
+
+    await prisma.aIIntake.delete({
+      where: { id }
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId,
+        action: 'AI_INTAKE_DELETED',
+        description: `Deleted inbound lead ${intake.contactName}`,
+        module: 'ai-intake',
+        targetId: id
+      }
+    });
+
+    return res.status(200).json({ success: true, message: "Intake deleted successfully" });
+  } catch (error: any) {
+    console.error("❌ Error deleting AI intake:", error.message || error);
+    return res.status(500).json({ error: "Failed to delete intake from database", details: error.message });
   }
 });
 

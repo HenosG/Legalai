@@ -20,6 +20,7 @@ import {
   Plus,
   Save,
   Send,
+  Sparkles,
   Trash2,
   UserRound,
   X,
@@ -81,37 +82,44 @@ const statusConfig: Record<
     label: string;
     icon: typeof FileText;
     className: string;
+    accentClassName: string;
   }
 > = {
   draft: {
     label: "Draft",
     icon: FileText,
     className: "border-zinc-200 bg-zinc-100 text-zinc-600",
+    accentClassName: "bg-zinc-900",
   },
   sent: {
     label: "Sent",
     icon: Send,
     className: "border-blue-200 bg-blue-50 text-blue-700",
+    accentClassName: "bg-blue-600",
   },
   viewed: {
     label: "Viewed",
     icon: Eye,
     className: "border-violet-200 bg-violet-50 text-violet-700",
+    accentClassName: "bg-violet-600",
   },
   signed: {
     label: "Signed",
     icon: CheckCircle2,
     className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    accentClassName: "bg-emerald-600",
   },
   rejected: {
     label: "Rejected",
     icon: XCircle,
     className: "border-red-200 bg-red-50 text-red-700",
+    accentClassName: "bg-red-600",
   },
   expired: {
     label: "Expired",
     icon: Clock3,
     className: "border-amber-200 bg-amber-50 text-amber-700",
+    accentClassName: "bg-amber-500",
   },
 };
 
@@ -219,17 +227,29 @@ function SectionHeading({
   icon: Icon,
   title,
   description,
+  accent = "zinc",
   action,
 }: {
   icon: React.ElementType;
   title: string;
   description: string;
+  accent?: "zinc" | "emerald";
   action?: React.ReactNode;
 }) {
+  const accentClass =
+    accent === "emerald"
+      ? "bg-emerald-50 text-emerald-700"
+      : "bg-zinc-100 text-zinc-600";
+
   return (
     <div className="flex flex-col gap-3 border-b border-zinc-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+        <div
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+            accentClass
+          )}
+        >
           <Icon size={16} strokeWidth={1.8} />
         </div>
 
@@ -298,7 +318,7 @@ function ListEditor({
               value={item}
               onChange={(event) => updateItem(index, event.target.value)}
               placeholder={placeholder}
-              className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition-all placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/5"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition-all placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
 
             <button
@@ -316,7 +336,7 @@ function ListEditor({
       <button
         type="button"
         onClick={addItem}
-        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-600 transition-colors hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
       >
         <Plus size={13} />
         Add item
@@ -333,13 +353,52 @@ function EmptyProposalSection({
   description: string;
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-5">
+    <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-5">
       <p className="text-xs font-medium text-zinc-600">{title}</p>
 
       <p className="mt-1 text-[11px] leading-5 text-zinc-400">
         {description}
       </p>
     </div>
+  );
+}
+
+function ActionButton({
+  children,
+  variant = "secondary",
+  onClick,
+  disabled,
+  className,
+}: {
+  children: React.ReactNode;
+  variant?: "primary" | "secondary" | "success" | "danger";
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const variantClasses = {
+    primary:
+      "bg-zinc-900 text-white hover:bg-zinc-700 shadow-[0_6px_18px_rgba(24,24,27,0.14)]",
+    secondary:
+      "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900",
+    success:
+      "bg-emerald-600 text-white hover:bg-emerald-700 shadow-[0_6px_18px_rgba(5,150,105,0.16)]",
+    danger: "bg-red-600 text-white hover:bg-red-700",
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        variantClasses[variant],
+        className
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -698,7 +757,7 @@ export default function ProposalDetail() {
         <div className="mx-auto max-w-6xl animate-pulse">
           <div className="mb-8 h-4 w-40 rounded bg-zinc-200" />
 
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
             <div className="border-b border-zinc-100 px-7 py-9 sm:px-10">
               <div className="h-4 w-20 rounded bg-zinc-100" />
               <div className="mt-6 h-12 max-w-2xl rounded bg-zinc-100" />
@@ -719,7 +778,7 @@ export default function ProposalDetail() {
   if (pageError || !proposal) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fafafa] px-5 text-zinc-900 sm:px-8">
-        <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-7 text-center shadow-sm">
+        <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-7 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
             <AlertCircle size={21} />
           </div>
@@ -733,22 +792,17 @@ export default function ProposalDetail() {
           </p>
 
           <div className="mt-6 flex justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => void loadProposal()}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-zinc-700"
-            >
+            <ActionButton onClick={() => void loadProposal()}>
               <Loader2 size={14} />
               Try again
-            </button>
+            </ActionButton>
 
-            <button
-              type="button"
+            <ActionButton
+              variant="secondary"
               onClick={() => navigate("/proposals")}
-              className="inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
             >
               Back to proposals
-            </button>
+            </ActionButton>
           </div>
         </div>
       </div>
@@ -798,8 +852,14 @@ export default function ProposalDetail() {
     normalizedStatus === "draft" &&
     Boolean(proposal.client?.email);
 
+  const isReadyToSend =
+    normalizedStatus === "draft" &&
+    Boolean(clientEmail) &&
+    visibleScope.length > 0 &&
+    Number(isEditing ? amount : proposal.amount) > 0;
+
   return (
-    <div className="min-h-screen bg-[#fafafa] pb-20 text-zinc-900 selection:bg-zinc-200">
+    <div className="min-h-screen bg-[#fafafa] pb-20 text-zinc-900 selection:bg-emerald-100">
       <style>{`
         @import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap");
 
@@ -812,7 +872,7 @@ export default function ProposalDetail() {
         }
       `}</style>
 
-      {/* Sticky Editor Toolbar */}
+      {/* Sticky Toolbar */}
       <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-[#fafafa]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3 sm:px-8 lg:px-12">
           <button
@@ -820,7 +880,7 @@ export default function ProposalDetail() {
             onClick={() => navigate("/proposals")}
             className="group inline-flex items-center gap-2 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white transition-colors group-hover:bg-zinc-50">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white transition-colors group-hover:border-zinc-300 group-hover:bg-zinc-50">
               <ArrowLeft size={15} />
             </span>
 
@@ -862,17 +922,16 @@ export default function ProposalDetail() {
 
             {isEditing ? (
               <>
-                <button
-  type="button"
-  onClick={handleCancelEditing}
-  disabled={busyAction !== null}
-  className="hidden h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
->
-  Cancel
-</button>
+                <ActionButton
+                  variant="secondary"
+                  onClick={handleCancelEditing}
+                  disabled={busyAction !== null}
+                  className="hidden sm:inline-flex"
+                >
+                  Cancel
+                </ActionButton>
 
-                <button
-                  type="button"
+                <ActionButton
                   onClick={() => {
                     const form = document.getElementById(
                       "proposal-editor-form"
@@ -881,7 +940,6 @@ export default function ProposalDetail() {
                     form?.requestSubmit();
                   }}
                   disabled={busyAction !== null}
-                  className="inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busyAction === "save" ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -894,21 +952,15 @@ export default function ProposalDetail() {
                   </span>
 
                   <span className="sm:hidden">Save</span>
-                </button>
+                </ActionButton>
               </>
             ) : (
               <>
                 {normalizedStatus === "draft" && (
-                  <button
-                    type="button"
+                  <ActionButton
+                    variant="success"
                     onClick={handleSend}
                     disabled={busyAction !== null || !canSend}
-                    title={
-                      canSend
-                        ? "Send proposal to client"
-                        : "A client email is required before sending"
-                    }
-                    className="inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {busyAction === "send" ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -921,18 +973,18 @@ export default function ProposalDetail() {
                     </span>
 
                     <span className="sm:hidden">Send</span>
-                  </button>
+                  </ActionButton>
                 )}
 
-                <button
-                  type="button"
+                <ActionButton
+                  variant="secondary"
                   onClick={handleStartEditing}
                   disabled={busyAction !== null}
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 sm:hidden"
+                  className="sm:hidden"
                 >
                   <Edit3 size={14} />
                   Edit
-                </button>
+                </ActionButton>
 
                 <details className="relative">
                   <summary
@@ -956,7 +1008,6 @@ export default function ProposalDetail() {
                       ) : (
                         <Copy size={14} className="text-zinc-400" />
                       )}
-
                       Duplicate proposal
                     </button>
 
@@ -973,7 +1024,6 @@ export default function ProposalDetail() {
                       ) : (
                         <Trash2 size={14} />
                       )}
-
                       Delete proposal
                     </button>
                   </div>
@@ -1002,78 +1052,81 @@ export default function ProposalDetail() {
           </span>
 
           {isEditing && (
-            <span className="rounded-md bg-zinc-200 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
+            <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
               Editing
             </span>
           )}
         </div>
 
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_270px]">
-          {/* Main Proposal */}
-          <article className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            {/* Proposal Cover */}
-            <div className="border-b border-zinc-100 bg-gradient-to-br from-zinc-50 via-white to-white px-6 py-8 sm:px-10 sm:py-10">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
-                    currentStatus.className
-                  )}
-                >
-                  <StatusIcon size={12} />
-                  {currentStatus.label}
-                </span>
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_285px]">
+          {/* Main Proposal Document */}
+          <article className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+            {/* Proposal cover */}
+            <div className="relative overflow-hidden border-b border-zinc-100 bg-gradient-to-br from-emerald-50/70 via-white to-white px-6 py-8 sm:px-10 sm:py-10">
+              <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-emerald-100/40 blur-3xl" />
 
-                <span className="text-[11px] font-medium text-zinc-400">
-                  {proposal.version && proposal.version > 1
-                    ? `Version ${proposal.version}`
-                    : "Version 1"}
-                </span>
-              </div>
+              <div className="relative">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                      currentStatus.className
+                    )}
+                  >
+                    <StatusIcon size={12} />
+                    {currentStatus.label}
+                  </span>
 
-              <p className="mt-8 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                {isEditing ? "Editing proposal" : "Project proposal"}
-              </p>
+                  <span className="text-[11px] font-medium text-zinc-400">
+                    {proposal.version && proposal.version > 1
+                      ? `Version ${proposal.version}`
+                      : "Version 1"}
+                  </span>
+                </div>
 
-              {isEditing ? (
-                <input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Proposal title"
-                  className="font-serif mt-3 w-full max-w-3xl border-0 bg-transparent p-0 text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-zinc-900 outline-none placeholder:text-zinc-300 focus:ring-0 sm:text-5xl"
-                />
-              ) : (
-                <h1 className="font-serif mt-3 max-w-3xl text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-zinc-900 sm:text-5xl">
-                  {proposal.title}
-                </h1>
-              )}
+                <p className="mt-8 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                  {isEditing ? "Editing proposal" : "Client proposal"}
+                </p>
 
-              <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] text-zinc-500">
-                <span className="inline-flex items-center gap-2">
-                  <CalendarDays size={14} className="text-zinc-400" />
-                  Created {formatDate(proposal.createdAt)}
-                </span>
+                {isEditing ? (
+                  <input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="Proposal title"
+                    className="font-serif mt-3 w-full max-w-3xl border-0 bg-transparent p-0 text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-zinc-900 outline-none placeholder:text-zinc-300 focus:ring-0 sm:text-5xl"
+                  />
+                ) : (
+                  <h1 className="font-serif mt-3 max-w-3xl text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-zinc-900 sm:text-5xl">
+                    {proposal.title}
+                  </h1>
+                )}
 
-                <span className="inline-flex items-center gap-2">
-                  <UserRound size={14} className="text-zinc-400" />
-                  For {clientName}
-                  {clientCompany ? ` · ${clientCompany}` : ""}
-                </span>
+                <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] text-zinc-500">
+                  <span className="inline-flex items-center gap-2">
+                    <CalendarDays size={14} className="text-zinc-400" />
+                    Created {formatDate(proposal.createdAt)}
+                  </span>
+
+                  <span className="inline-flex items-center gap-2">
+                    <UserRound size={14} className="text-zinc-400" />
+                    For {clientName}
+                    {clientCompany ? ` · ${clientCompany}` : ""}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Proposal Form / Content */}
             <form id="proposal-editor-form" onSubmit={handleSave}>
               <div className="space-y-10 px-6 py-8 sm:px-10 sm:py-10">
                 {formError && isEditing && (
-                  <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs leading-5 text-red-700">
+                  <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-5 text-red-700">
                     <AlertCircle size={16} className="mt-0.5 shrink-0" />
                     <span>{formError}</span>
                   </div>
                 )}
 
                 {/* Client + Investment */}
-                <section className="grid gap-5 lg:grid-cols-2">
+                <section className="grid gap-4 lg:grid-cols-2">
                   <div className="rounded-xl border border-zinc-200 bg-white p-5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
                       Prepared for
@@ -1100,7 +1153,7 @@ export default function ProposalDetail() {
                             id="proposal-client"
                             value={clientId}
                             onChange={(event) => setClientId(event.target.value)}
-                            className="h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/5"
+                            className="h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-800 outline-none transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                           >
                             <option value="">Select a client…</option>
 
@@ -1120,7 +1173,7 @@ export default function ProposalDetail() {
                       </div>
                     ) : (
                       <div className="mt-4 flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-xs font-semibold text-zinc-600">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-xs font-semibold text-emerald-700">
                           {clientInitials}
                         </div>
 
@@ -1139,8 +1192,8 @@ export default function ProposalDetail() {
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-zinc-200 bg-white p-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700/70">
                       Total investment
                     </p>
 
@@ -1166,7 +1219,7 @@ export default function ProposalDetail() {
                             value={amount}
                             onChange={(event) => setAmount(event.target.value)}
                             placeholder="0"
-                            className="h-10 w-full rounded-lg border border-zinc-200 bg-white pl-7 pr-3 text-sm font-semibold tabular-nums text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/5"
+                            className="h-10 w-full rounded-lg border border-emerald-200 bg-white pl-7 pr-3 text-sm font-semibold tabular-nums text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                           />
                         </div>
 
@@ -1180,7 +1233,7 @@ export default function ProposalDetail() {
                           {formatCurrency(proposal.amount)}
                         </p>
 
-                        <p className="mt-1 text-[11px] text-zinc-400">
+                        <p className="mt-1 text-[11px] text-zinc-500">
                           USD · Total proposal value
                         </p>
                       </div>
@@ -1194,6 +1247,7 @@ export default function ProposalDetail() {
                     icon={FileText}
                     title="Scope of work"
                     description="Define the client-facing deliverables and work included in this proposal."
+                    accent="emerald"
                   />
 
                   <div className="mt-5">
@@ -1210,9 +1264,9 @@ export default function ProposalDetail() {
                         {visibleScope.map((item, index) => (
                           <div
                             key={`${item}-${index}`}
-                            className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-4"
+                            className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4"
                           >
-                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-semibold text-white">
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
                               {index + 1}
                             </span>
 
@@ -1237,6 +1291,7 @@ export default function ProposalDetail() {
                     icon={CalendarDays}
                     title="Timeline"
                     description="Set clear delivery milestones or phases so the client understands what happens next."
+                    accent="emerald"
                   />
 
                   <div className="mt-5">
@@ -1253,9 +1308,9 @@ export default function ProposalDetail() {
                         {visibleTimeline.map((item, index) => (
                           <div
                             key={`${item}-${index}`}
-                            className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+                            className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4"
                           >
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-[11px] font-semibold text-zinc-600">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-[11px] font-semibold text-emerald-700">
                               {index + 1}
                             </div>
 
@@ -1276,16 +1331,17 @@ export default function ProposalDetail() {
                   </div>
                 </section>
 
-                {/* Proposal Summary */}
+                {/* Summary */}
                 <section>
                   <SectionHeading
                     icon={CheckCircle2}
                     title="Proposal summary"
-                    description="A clear overview of the commercial and delivery context for this proposal."
+                    description="A clear commercial overview before you share this proposal with the client."
+                    accent="emerald"
                   />
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-4">
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
                         Client
                       </p>
@@ -1295,7 +1351,7 @@ export default function ProposalDetail() {
                       </p>
                     </div>
 
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-4">
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
                         Investment
                       </p>
@@ -1307,7 +1363,7 @@ export default function ProposalDetail() {
                       </p>
                     </div>
 
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-4">
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
                         Deliverables
                       </p>
@@ -1325,23 +1381,43 @@ export default function ProposalDetail() {
 
           {/* Side Context */}
           <aside className="space-y-4 xl:sticky xl:top-20">
-            <div className="rounded-xl border border-zinc-200 bg-white p-5">
+            <div
+              className={cn(
+                "rounded-xl border bg-white p-5",
+                normalizedStatus === "signed"
+                  ? "border-emerald-200"
+                  : isReadyToSend
+                  ? "border-emerald-200"
+                  : "border-zinc-200"
+              )}
+            >
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
                 Proposal status
               </p>
 
               <div className="mt-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                <div
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-lg text-white",
+                    normalizedStatus === "signed" || isReadyToSend
+                      ? "bg-emerald-600"
+                      : currentStatus.accentClassName
+                  )}
+                >
                   <StatusIcon size={16} />
                 </div>
 
                 <div>
                   <p className="text-sm font-semibold text-zinc-900">
-                    {currentStatus.label}
+                    {normalizedStatus === "draft" && isReadyToSend
+                      ? "Ready to send"
+                      : currentStatus.label}
                   </p>
 
                   <p className="mt-0.5 text-[11px] text-zinc-500">
-                    {getStatusTimelineLabel(proposal)}
+                    {normalizedStatus === "draft" && isReadyToSend
+                      ? "Client email, scope, and investment are ready."
+                      : getStatusTimelineLabel(proposal)}
                   </p>
                 </div>
               </div>
@@ -1359,11 +1435,18 @@ export default function ProposalDetail() {
                     </p>
                   )}
 
-                  <button
-                    type="button"
+                  {clientEmail && !isReadyToSend && (
+                    <p className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] leading-5 text-zinc-500">
+                      Add at least one scope item and a proposal value before
+                      sending.
+                    </p>
+                  )}
+
+                  <ActionButton
+                    variant="success"
                     onClick={handleSend}
                     disabled={busyAction !== null || !canSend}
-                    className="mt-4 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-4 w-full"
                   >
                     {busyAction === "send" ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -1372,7 +1455,23 @@ export default function ProposalDetail() {
                     )}
 
                     {busyAction === "send" ? "Sending…" : "Send to client"}
-                  </button>
+                  </ActionButton>
+                </div>
+              )}
+
+              {normalizedStatus === "signed" && (
+                <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2
+                      size={15}
+                      className="mt-0.5 shrink-0 text-emerald-600"
+                    />
+
+                    <p className="text-[11px] leading-5 text-emerald-800">
+                      This proposal has been approved. You can now move the
+                      engagement into Projects and begin delivery.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -1383,7 +1482,7 @@ export default function ProposalDetail() {
               </p>
 
               <div className="mt-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-[11px] font-semibold text-zinc-600">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-[11px] font-semibold text-emerald-700">
                   {clientInitials}
                 </div>
 
@@ -1402,7 +1501,7 @@ export default function ProposalDetail() {
                 type="button"
                 onClick={() => navigate(`/crm/${proposal.clientId}`)}
                 disabled={!proposal.clientId}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-600 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-600 transition-colors hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Open client record
                 <ArrowRight size={13} />
@@ -1450,24 +1549,44 @@ export default function ProposalDetail() {
                 )}
               </div>
             </div>
+
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-5">
+              <div className="flex items-start gap-3">
+                <Sparkles
+                  size={16}
+                  className="mt-0.5 shrink-0 text-emerald-600"
+                />
+
+                <div>
+                  <p className="text-xs font-semibold text-zinc-800">
+                    Before you send
+                  </p>
+
+                  <p className="mt-1 text-[11px] leading-5 text-zinc-600">
+                    Confirm the scope, timeline, and investment reflect the
+                    client conversation. Your client receives the proposal as a
+                    reviewable workspace document.
+                  </p>
+                </div>
+              </div>
+            </div>
           </aside>
         </div>
 
-        {/* Sticky mobile save bar */}
+        {/* Mobile save bar */}
         {isEditing && (
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/95 p-3 backdrop-blur lg:hidden">
             <div className="mx-auto flex max-w-6xl gap-2 px-2">
-              <button
-                type="button"
+              <ActionButton
+                variant="secondary"
                 onClick={handleCancelEditing}
                 disabled={busyAction !== null}
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
+                className="flex-1"
               >
                 Cancel
-              </button>
+              </ActionButton>
 
-              <button
-                type="button"
+              <ActionButton
                 onClick={() => {
                   const form = document.getElementById(
                     "proposal-editor-form"
@@ -1476,7 +1595,7 @@ export default function ProposalDetail() {
                   form?.requestSubmit();
                 }}
                 disabled={busyAction !== null}
-                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-50"
+                className="flex-1"
               >
                 {busyAction === "save" ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -1485,7 +1604,7 @@ export default function ProposalDetail() {
                 )}
 
                 {busyAction === "save" ? "Saving…" : "Save"}
-              </button>
+              </ActionButton>
             </div>
           </div>
         )}

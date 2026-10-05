@@ -13,7 +13,7 @@ import contactRouter from "./server/routes/contact.js";
 import contactMessagesRouter from "./server/routes/contactMessages.js";
 import onboardingRouter from "./src/routes/onboarding.js";
 import clientsRouter from "./src/server/routes/clients.js";
-import aiIntakeRouter from "./server/routes/aiIntake";
+import aiIntakeRouter from "./server/routes/aiIntake.js";
 import proposalsRouter from "./server/routes/proposals.js";
 import projectRoutes from "./server/routes/projects.js";
 import tasksRouter from "./server/routes/tasks.js";

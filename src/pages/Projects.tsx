@@ -13,7 +13,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   CheckCircle2,
-  ChevronRight,
   Clock,
   FolderKanban,
   ListTodo,
@@ -38,6 +37,7 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
+
 import { cn } from "@/lib/utils";
 import { createApiClient } from "@/lib/api";
 import ProjectCard, {
@@ -45,7 +45,7 @@ import ProjectCard, {
 } from "../components/projects/ProjectCard";
 import CreateProjectDialog from "../components/projects/CreateProjectDialog";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ProjectStatus =
   | "all"
@@ -55,22 +55,28 @@ type ProjectStatus =
   | "COMPLETED";
 
 interface ProjectListItemWithOptionalDates extends ProjectListItem {
-  createdAt?: string;
-  updatedAt?: string;
-  completedAt?: string;
-  dueDate?: string;
-  endDate?: string;
-  startDate?: string;
-  health?: string;
-  upcomingTaskCount?: number;
-  openTaskCount?: number;
-  completedTaskCount?: number;
-  totalTaskCount?: number;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  completedAt?: string | null;
+  dueDate?: string | null;
+  endDate?: string | null;
+  startDate?: string | null;
+  health?: string | null;
+  upcomingTaskCount?: number | null;
+  openTaskCount?: number | null;
+  completedTaskCount?: number | null;
+  totalTaskCount?: number | null;
+  clientId?: string | null;
+  clientName?: string | null;
   client?: {
-    id?: string;
-    name?: string;
-    company?: string;
-  };
+    id?: string | null;
+    name?: string | null;
+    company?: string | null;
+  } | null;
+}
+
+interface ProjectListResponse {
+  projects?: ProjectListItemWithOptionalDates[];
 }
 
 interface ProjectStats {
@@ -106,7 +112,7 @@ const STATUS_TABS: {
   { value: "COMPLETED", label: "Completed" },
 ];
 
-// ─── Motion ──────────────────────────────────────────────────────────────────
+// ─── Motion ───────────────────────────────────────────────────────────────────
 
 const springTransition = {
   type: "spring",
@@ -134,28 +140,57 @@ const itemVariants = {
   },
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function normalizeStatus(status?: string) {
+function normalizeStatus(status?: string | null) {
   return String(status || "ACTIVE")
     .trim()
     .toUpperCase();
 }
 
-function normalizeHealth(health?: string) {
+function normalizeHealth(health?: string | null) {
   return String(health || "")
     .trim()
     .toUpperCase();
 }
 
-function getDateValue(value?: string) {
-  if (!value) return null;
+function isAtRisk(project: ProjectListItemWithOptionalDates) {
+  const status = normalizeStatus(project.status);
+  const health = normalizeHealth(project.health);
+
+  return (
+    status === "AT_RISK" ||
+    health === "AT_RISK" ||
+    health === "OFF_TRACK" ||
+    health === "BLOCKED"
+  );
+}
+
+function matchesStatus(
+  project: ProjectListItemWithOptionalDates,
+  filter: ProjectStatus
+) {
+  if (filter === "all") {
+    return true;
+  }
+
+  const projectStatus = normalizeStatus(project.status);
+
+  if (filter === "AT_RISK") {
+    return isAtRisk(project);
+  }
+
+  return projectStatus === filter;
+}
+
+function getDateValue(value?: string | null) {
+  if (!value) {
+    return null;
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return null;
-
-  return date;
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function isSameMonth(date: Date, referenceDate: Date) {
@@ -166,23 +201,71 @@ function isSameMonth(date: Date, referenceDate: Date) {
 }
 
 function isWithinNextSevenDays(date: Date) {
-  const now = new Date();
-  const weekFromNow = new Date();
+  const today = new Date();
+  const weekFromNow = new Date(today);
 
-  now.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
   weekFromNow.setDate(weekFromNow.getDate() + 7);
   weekFromNow.setHours(23, 59, 59, 999);
 
-  return date >= now && date <= weekFromNow;
+  return date >= today && date <= weekFromNow;
 }
 
 function getProjectDate(project: ProjectListItemWithOptionalDates) {
   return (
     getDateValue(project.createdAt) ||
-    getDateValue(project.updatedAt) ||
     getDateValue(project.startDate) ||
+    getDateValue(project.updatedAt) ||
     null
   );
+}
+
+function getProjectSearchText(project: ProjectListItemWithOptionalDates) {
+  const projectRecord = project as ProjectListItemWithOptionalDates & {
+    name?: string | null;
+    title?: string | null;
+    description?: string | null;
+    clientName?: string | null;
+  };
+
+  return [
+    projectRecord.name,
+    projectRecord.title,
+    projectRecord.description,
+    projectRecord.clientName,
+    projectRecord.client?.name,
+    projectRecord.client?.company,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" ")
+    .toLowerCase();
+}
+
+function getProjectTitle(project: ProjectListItemWithOptionalDates) {
+  const projectRecord = project as ProjectListItemWithOptionalDates & {
+    name?: string | null;
+    title?: string | null;
+  };
+
+  return projectRecord.name || projectRecord.title || "Untitled project";
+}
+
+function sortProjectsByRecent(
+  projects: ProjectListItemWithOptionalDates[]
+) {
+  return [...projects].sort((a, b) => {
+    const aDate =
+      getDateValue(a.updatedAt) ||
+      getDateValue(a.createdAt) ||
+      getDateValue(a.startDate);
+
+    const bDate =
+      getDateValue(b.updatedAt) ||
+      getDateValue(b.createdAt) ||
+      getDateValue(b.startDate);
+
+    return (bDate?.getTime() || 0) - (aDate?.getTime() || 0);
+  });
 }
 
 function buildProjectTrendData(
@@ -198,7 +281,6 @@ function buildProjectTrendData(
       label: date.toLocaleDateString("en-CA", {
         month: "short",
       }),
-      projects: 0,
     };
   });
 
@@ -213,20 +295,8 @@ function buildProjectTrendData(
       ): item is {
         project: ProjectListItemWithOptionalDates;
         date: Date;
-      } => Boolean(item.date)
+      } => item.date !== null
     );
-
-  if (!datedProjects.length) {
-    const total = projects.length;
-
-    return months.map((month, index) => ({
-      label: month.label,
-      projects:
-        index === months.length - 1
-          ? total
-          : Math.max(0, Math.round((total / 6) * (index + 1))),
-    }));
-  }
 
   return months.map((month) => {
     const monthEnd = new Date(
@@ -235,7 +305,8 @@ function buildProjectTrendData(
       0,
       23,
       59,
-      59
+      59,
+      999
     );
 
     return {
@@ -247,27 +318,7 @@ function buildProjectTrendData(
   });
 }
 
-function getProjectSearchText(project: ProjectListItemWithOptionalDates) {
-  const projectRecord = project as ProjectListItemWithOptionalDates & {
-    name?: string;
-    description?: string;
-    clientName?: string;
-  };
-
-  return [
-    projectRecord.name,
-    projectRecord.title,
-    projectRecord.description,
-    projectRecord.clientName,
-    projectRecord.client?.name,
-    projectRecord.client?.company,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-// ─── Components ──────────────────────────────────────────────────────────────
+// ─── Components ───────────────────────────────────────────────────────────────
 
 function MetricCard({
   label,
@@ -523,9 +574,7 @@ function ProjectStatusChart({
               <div className="flex min-w-0 items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{
-                    backgroundColor: item.color,
-                  }}
+                  style={{ backgroundColor: item.color }}
                 />
 
                 <span className="truncate text-[11px] font-medium text-zinc-600">
@@ -597,9 +646,7 @@ function ProjectTrendChart({
         />
 
         <RechartsTooltip
-          cursor={{
-            fill: "rgba(0, 0, 0, 0.03)",
-          }}
+          cursor={{ fill: "rgba(0, 0, 0, 0.03)" }}
           contentStyle={{
             borderRadius: "10px",
             border: "1px solid #e4e4e7",
@@ -625,55 +672,42 @@ function ProjectTrendChart({
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Projects() {
   const navigate = useNavigate();
   const { getToken } = useAuth();
 
-  const [projects, setProjects] = useState<ProjectListItemWithOptionalDates[]>(
-    []
-  );
   const [allProjects, setAllProjects] = useState<
     ProjectListItemWithOptionalDates[]
   >([]);
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] =
     useState<ProjectStatus>("all");
-
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const api = useCallback(
-    async () => createApiClient(await getToken()),
-    [getToken]
-  );
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
-    }, 300);
+      setDebouncedSearch(search.trim().toLowerCase());
+    }, 250);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+    };
   }, [search]);
 
-  const loadAllProjects = useCallback(async () => {
-    const response = await (
-      await api()
-    ).get<{ projects: ProjectListItemWithOptionalDates[] }>("/api/projects");
-
-    return response.projects || [];
-  }, [api]);
-
-  const load = useCallback(
+  const loadProjects = useCallback(
     async (showRefresh = false) => {
+      const requestId = ++requestIdRef.current;
+
       if (showRefresh) {
         setRefreshing(true);
       } else {
@@ -683,62 +717,57 @@ export default function Projects() {
       setError(null);
 
       try {
-        const params = new URLSearchParams();
+        const token = await getToken();
+        const api = createApiClient(token);
 
-        if (statusFilter !== "all") {
-          params.set("status", statusFilter);
+        const response = await api.get<ProjectListResponse>("/api/projects");
+
+        if (requestId !== requestIdRef.current) {
+          return;
         }
 
-        if (debouncedSearch) {
-          params.set("search", debouncedSearch);
-        }
+        const projectList = Array.isArray(response?.projects)
+          ? response.projects
+          : [];
 
-        const query = params.toString();
-        const filteredEndpoint = query
-          ? `/api/projects?${query}`
-          : "/api/projects";
-
-        const [filteredResponse, fullProjectList] = await Promise.all([
-          (
-            await api()
-          ).get<{ projects: ProjectListItemWithOptionalDates[] }>(
-            filteredEndpoint
-          ),
-          loadAllProjects(),
-        ]);
-
-        setProjects(filteredResponse.projects || []);
-        setAllProjects(fullProjectList);
+        setAllProjects(sortProjectsByRecent(projectList));
       } catch (requestError) {
-        setError(
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        const message =
           requestError instanceof Error
             ? requestError.message
-            : "Failed to load projects."
-        );
+            : "Failed to load projects.";
 
-        setProjects([]);
+        setError(message);
         setAllProjects([]);
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [api, debouncedSearch, loadAllProjects, statusFilter]
+    [getToken]
   );
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadProjects();
+  }, [loadProjects]);
 
   const filteredProjects = useMemo(() => {
-    if (!debouncedSearch) return projects;
+    return allProjects.filter((project) => {
+      const matchesSelectedStatus = matchesStatus(project, statusFilter);
 
-    const query = debouncedSearch.toLowerCase();
+      const matchesSearch =
+        !debouncedSearch ||
+        getProjectSearchText(project).includes(debouncedSearch);
 
-    return projects.filter((project) =>
-      getProjectSearchText(project).includes(query)
-    );
-  }, [debouncedSearch, projects]);
+      return matchesSelectedStatus && matchesSearch;
+    });
+  }, [allProjects, debouncedSearch, statusFilter]);
 
   const metrics = useMemo<ProjectStats>(() => {
     const now = new Date();
@@ -747,16 +776,7 @@ export default function Projects() {
       (project) => normalizeStatus(project.status) === "ACTIVE"
     );
 
-    const atRisk = allProjects.filter((project) => {
-      const status = normalizeStatus(project.status);
-      const health = normalizeHealth(project.health);
-
-      return (
-        status === "AT_RISK" ||
-        health === "AT_RISK" ||
-        health === "OFF_TRACK"
-      );
-    });
+    const atRisk = allProjects.filter((project) => isAtRisk(project));
 
     const onHold = allProjects.filter(
       (project) => normalizeStatus(project.status) === "ON_HOLD"
@@ -781,11 +801,10 @@ export default function Projects() {
     }).length;
 
     const activeTaskCount = allProjects.reduce((total, project) => {
-      const taskCount =
-        Number(project.upcomingTaskCount || 0) ||
-        Number(project.openTaskCount || 0);
+      const directOpenCount = Number(project.openTaskCount || 0);
+      const upcomingCount = Number(project.upcomingTaskCount || 0);
 
-      return total + taskCount;
+      return total + Math.max(directOpenCount, upcomingCount);
     }, 0);
 
     return {
@@ -799,6 +818,17 @@ export default function Projects() {
       activeTaskCount,
     };
   }, [allProjects]);
+
+  const statusCounts = useMemo<Record<ProjectStatus, number>>(
+    () => ({
+      all: metrics.total,
+      ACTIVE: metrics.active,
+      AT_RISK: metrics.atRisk,
+      ON_HOLD: metrics.onHold,
+      COMPLETED: metrics.completed,
+    }),
+    [metrics]
+  );
 
   const statusChartData = useMemo<StatusChartPoint[]>(
     () => [
@@ -831,16 +861,19 @@ export default function Projects() {
     [allProjects]
   );
 
-  const completedRate =
-    metrics.total > 0
-      ? Math.round((metrics.completed / metrics.total) * 100)
-      : 0;
+  const completedRate = useMemo(() => {
+    if (metrics.total === 0) {
+      return 0;
+    }
+
+    return Math.round((metrics.completed / metrics.total) * 100);
+  }, [metrics.completed, metrics.total]);
 
   const handleCreated = async () => {
     setCreateOpen(false);
     toast.success("Project created.");
 
-    await load(true);
+    await loadProjects(true);
   };
 
   const clearFilters = () => {
@@ -855,6 +888,12 @@ export default function Projects() {
 
   const hasSearchOrFilter =
     Boolean(search.trim()) || statusFilter !== "all";
+
+  const filterToStatus = (status: ProjectStatus) => {
+    setStatusFilter(status);
+    setSearch("");
+    setDebouncedSearch("");
+  };
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 selection:bg-zinc-200">
@@ -916,7 +955,7 @@ export default function Projects() {
 
             <button
               type="button"
-              onClick={() => void load(true)}
+              onClick={() => void loadProjects(true)}
               disabled={refreshing}
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -957,7 +996,7 @@ export default function Projects() {
                 value={metrics.active}
                 icon={FolderKanban}
                 loading={false}
-                onClick={() => setStatusFilter("ACTIVE")}
+                onClick={() => filterToStatus("ACTIVE")}
               />
 
               <MetricCard
@@ -965,7 +1004,7 @@ export default function Projects() {
                 value={metrics.atRisk}
                 icon={TriangleAlert}
                 loading={false}
-                onClick={() => setStatusFilter("AT_RISK")}
+                onClick={() => filterToStatus("AT_RISK")}
               />
 
               <MetricCard
@@ -973,7 +1012,7 @@ export default function Projects() {
                 value={metrics.dueThisWeek}
                 icon={Clock}
                 loading={false}
-                onClick={() => setStatusFilter("ACTIVE")}
+                onClick={() => filterToStatus("ACTIVE")}
               />
 
               <MetricCard
@@ -981,13 +1020,13 @@ export default function Projects() {
                 value={metrics.completed}
                 icon={CheckCircle2}
                 loading={false}
-                onClick={() => setStatusFilter("COMPLETED")}
+                onClick={() => filterToStatus("COMPLETED")}
               />
             </>
           )}
         </motion.section>
 
-        {/* Search and Filters */}
+        {/* Search and filters */}
         <motion.section variants={itemVariants} className="mb-6">
           <div className="rounded-xl border border-zinc-200 bg-white">
             <div className="flex flex-col gap-4 border-b border-zinc-100 bg-zinc-50/40 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
@@ -1019,21 +1058,36 @@ export default function Projects() {
 
               <div className="hide-scrollbar -mx-1 overflow-x-auto px-1">
                 <div className="inline-flex min-w-max items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1">
-                  {STATUS_TABS.map((tab) => (
-                    <button
-                      key={tab.value}
-                      type="button"
-                      onClick={() => setStatusFilter(tab.value)}
-                      className={cn(
-                        "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                        statusFilter === tab.value
-                          ? "bg-zinc-900 text-white"
-                          : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                  {STATUS_TABS.map((tab) => {
+                    const active = statusFilter === tab.value;
+
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => setStatusFilter(tab.value)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                          active
+                            ? "bg-zinc-900 text-white"
+                            : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                        )}
+                      >
+                        {tab.label}
+
+                        <span
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-[10px] tabular-nums",
+                            active
+                              ? "bg-white/15 text-white"
+                              : "bg-zinc-100 text-zinc-500"
+                          )}
+                        >
+                          {statusCounts[tab.value]}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1063,10 +1117,13 @@ export default function Projects() {
           </div>
         </motion.section>
 
-        {/* Project Grid */}
+        {/* Project grid */}
         <motion.section variants={itemVariants}>
           {error ? (
-            <ErrorState message={error} onRetry={() => void load()} />
+            <ErrorState
+              message={error}
+              onRetry={() => void loadProjects()}
+            />
           ) : loading ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
@@ -1140,9 +1197,7 @@ export default function Projects() {
               </div>
 
               <p className="mt-3 text-[11px] leading-5 text-zinc-400">
-                Project volume is calculated from creation dates when available.
-                If your list API does not return dates, this chart uses the
-                current workspace snapshot.
+                Project volume uses project creation dates when available.
               </p>
             </div>
 
@@ -1181,8 +1236,8 @@ export default function Projects() {
                         metrics.total === 1 ? "" : "s"
                       } are complete. ${
                         metrics.atRisk > 0
-                          ? `${metrics.atRisk} need${
-                              metrics.atRisk === 1 ? "s" : ""
+                          ? `${metrics.atRisk} ${
+                              metrics.atRisk === 1 ? "project needs" : "projects need"
                             } attention.`
                           : "No projects are currently marked at risk."
                       }`}
@@ -1192,7 +1247,7 @@ export default function Projects() {
           </div>
         </motion.section>
 
-        {/* Workflow Hint */}
+        {/* Workflow hint */}
         <motion.section variants={itemVariants} className="mt-6">
           <div className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4">
             <ListTodo size={16} className="mt-0.5 shrink-0 text-zinc-400" />

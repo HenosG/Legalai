@@ -73,7 +73,7 @@ const itemVariants = {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type IntakeAction = "proposal" | "accept" | "reject";
+type IntakeAction = "proposal" | "accept" | "reject" | "delete";
 
 interface IntakeStatusMetric {
   label: string;
@@ -540,7 +540,8 @@ function IntakeStatusChart({
           ))
         ) : (
           <p className="pr-3 text-[11px] leading-5 text-zinc-400">
-Inquiries will appear here once added.          </p>
+            Inquiries will appear here once added.
+          </p>
         )}
       </div>
     </div>
@@ -785,7 +786,7 @@ export default function AIIntake() {
       }
 
       if (action === "accept") {
-        const response = await (
+        await (
           await api()
         ).post<{ client: { id: string } }>(
           `/api/ai-intake/${intake.id}/accept`,
@@ -817,6 +818,46 @@ export default function AIIntake() {
       setActingOn((previous) => {
         const next = { ...previous };
         delete next[intake.id];
+        return next;
+      });
+    }
+  };
+
+  // ─── Delete Wiring ────────────────────────────────────────────────────────
+  // The card already owns its delete confirmation UI. Once the user confirms,
+  // this handler deletes the record through the existing backend route and
+  // removes it from local state immediately.
+
+  const handleDelete = async (intakeId: string) => {
+    setActingOn((previous) => ({
+      ...previous,
+      [intakeId]: "delete",
+    }));
+  
+    setError(null);
+  
+    try {
+      const client = await api();
+  
+      await client.delete(`/api/ai-intake/${intakeId}`);
+  
+      setIntakes((previous) =>
+        previous.filter((intake) => intake.id !== intakeId)
+      );
+  
+      await loadActivity();
+    } catch (requestError) {
+      console.error("Failed to delete AI intake:", requestError);
+  
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Failed to delete this intake."
+      );
+    } finally {
+      setActingOn((previous) => {
+        const next = { ...previous };
+        delete next[intakeId];
         return next;
       });
     }
@@ -1157,6 +1198,7 @@ export default function AIIntake() {
               <EmptyIntakes
                 onFocusInput={() => {
                   inputRef.current?.focus();
+
                   window.scrollTo({
                     top: 0,
                     behavior: "smooth",
@@ -1173,6 +1215,7 @@ export default function AIIntake() {
                     onProposal={() => void handleAction(intake, "proposal")}
                     onAccept={() => void handleAction(intake, "accept")}
                     onReject={() => void handleAction(intake, "reject")}
+                    onDelete={() => void handleDelete(intake.id)}
                     actingOn={actingOn[intake.id] || null}
                   />
                 ))}
@@ -1197,8 +1240,8 @@ export default function AIIntake() {
           </div>
         </motion.section>
 
-{/* Insights */}
-<motion.section variants={itemVariants} className="mt-10">
+        {/* Insights */}
+        <motion.section variants={itemVariants} className="mt-10">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-zinc-900">

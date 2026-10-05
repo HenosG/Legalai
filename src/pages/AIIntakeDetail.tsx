@@ -296,6 +296,7 @@ export default function AIIntakeDetail() {
           </div>
         </div>
 
+        {/* Action Section */}
         {!isFinal ? (
           <div className="flex gap-4">
             <button
@@ -320,8 +321,36 @@ export default function AIIntakeDetail() {
             </button>
           </div>
         ) : (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-center text-sm text-zinc-500 font-medium">
-            This lead has already been marked as <span className="uppercase font-semibold text-zinc-800">{intake.status}</span>.
+          <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-6 py-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              <p className="text-[13px] text-zinc-600 font-medium">
+                Lead status: <span className="uppercase font-semibold text-zinc-900">{intake.status}</span>
+              </p>
+            </div>
+            
+            {/* Three Dots Options Menu */}
+            <div className="relative group">
+              <button className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors">
+                <span className="text-lg font-bold leading-none mb-1">...</span>
+              </button>
+              
+              {/* Dropdown Menu */}
+              <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-48 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg">
+                <button
+                  onClick={() => navigate("/proposals")}
+                  className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                >
+                  View Related Proposals
+                </button>
+                <button
+                  onClick={() => navigate("/crm")}
+                  className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                >
+                  Go to CRM Clients
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </motion.main>
