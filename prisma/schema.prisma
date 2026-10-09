@@ -525,12 +525,27 @@ model Project {
 
   milestones Milestone[]
   tasks      Task[]
+  aiInsights ProjectAiInsight[]
 
   @@index([userId, status])
   @@index([organizationId, status])
   @@index([clientId, status])
   @@index([organizationId, targetDate])
   @@index([organizationId, updatedAt])
+}
+
+model ProjectAiInsight {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  summary     String
+  risks       String[]
+  nextSteps   String[]
+  healthScore Int?
+  model       String?
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, createdAt])
 }
 
 model Milestone {
