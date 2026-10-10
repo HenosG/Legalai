@@ -92,9 +92,13 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 
 import Invoices from "./pages/Invoices";
-import InvoiceNew from "./pages/InvoiceNew";
 import InvoiceDetail from "./pages/InvoiceDetail";
-import InvoiceEdit from "./pages/InvoiceEdit";
+// InvoiceNew and InvoiceEdit are now both served by the single InvoiceBuilder
+// component (create-mode when no :invoiceId, edit-mode when it's a draft).
+// It currently lives at your project root per where you saved it — move it to
+// src/pages/InvoiceBuilder.tsx when convenient and change this import to
+// "./pages/InvoiceBuilder" to match every other page in this list.
+import InvoiceBuilder from "../InvoiceBuilder";
 
 import Account from "./pages/Account";
 import BillingSettings from "./pages/settings/BillingSettings";
@@ -375,14 +379,14 @@ const App = () => (
 
                 {/* Invoices and client payment workflow */}
                 <Route path="/invoices" element={<Invoices />} />
-                <Route path="/invoices/new" element={<InvoiceNew />} />
+                <Route path="/invoices/new" element={<InvoiceBuilder />} />
                 <Route
                   path="/invoices/:invoiceId"
                   element={<InvoiceDetail />}
                 />
                 <Route
                   path="/invoices/:invoiceId/edit"
-                  element={<InvoiceEdit />}
+                  element={<InvoiceBuilder />}
                 />
 
                 {/* Account and organization settings */}

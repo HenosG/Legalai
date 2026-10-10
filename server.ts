@@ -21,6 +21,15 @@ import tasksRouter from "./server/routes/tasks.js";
 import milestonesRouter from "./server/routes/milestones.js";
 import settingsRouter from "./server/routes/settings.js";
 
+// ─── Invoice / Stripe Connect routes (new) ────────────────────────────────────
+// Separate from the RelunoOS subscription checkout (checkoutRouter) and
+// subscription webhook (stripeWebhookRouter) above — nothing below touches
+// those. This is each agency's OWN connected Stripe account, used to collect
+// payment on their own client invoices.
+import invoicesRouter from "./server/routes/invoices.js";
+import stripeConnectRouter from "./src/routes/stripeConnect.js";
+import stripeConnectWebhookRouter from "./stripeConnectWebhook.js";
+
 
 dotenv.config();
 
@@ -81,6 +90,12 @@ if (!process.env.GEMINI_API_KEY && !process.env.VITE_GEMINI_API_KEY) {
 if (!process.env.CONTACT_ADMIN_CLERK_USER_IDS) {
   console.warn(
     "⚠️ WARNING: CONTACT_ADMIN_CLERK_USER_IDS is missing. Contact inbox access will remain blocked."
+  );
+}
+
+if (!process.env.STRIPE_CONNECT_WEBHOOK_SECRET) {
+  console.warn(
+    "⚠️ WARNING: STRIPE_CONNECT_WEBHOOK_SECRET is missing. Invoice payment webhooks will fail signature verification."
   );
 }
 
@@ -155,6 +170,15 @@ app.use(
   clerkWebhookRouter
 );
 
+// Stripe Connect invoice-payment webhook — separate path, separate signing
+// secret (STRIPE_CONNECT_WEBHOOK_SECRET), separate handler file. Does not
+// touch /api/stripe/webhook (subscriptions) above.
+app.use(
+  "/api/stripe-connect/webhook",
+  express.raw({ type: "application/json" }),
+  stripeConnectWebhookRouter
+);
+
 
 // ─── JSON Body Parser ────────────────────────────────────────────────────────
 
@@ -227,6 +251,24 @@ app.use("/api/milestones", milestonesRouter);
  * PATCH /api/settings/client-portal
  */
 app.use("/api/settings", settingsRouter);
+
+/**
+ * Invoice routes:
+ * GET    /api/invoices
+ * GET    /api/invoices/:id
+ * POST   /api/invoices
+ * PATCH  /api/invoices/:id
+ * POST   /api/invoices/:id/issue
+ * POST   /api/invoices/:id/payment-session
+ */
+app.use("/api/invoices", invoicesRouter);
+
+/**
+ * Stripe Connect onboarding routes (separate from subscription billing):
+ * POST /api/stripe-connect/onboarding-link
+ * GET  /api/stripe-connect/status
+ */
+app.use("/api/stripe-connect", stripeConnectRouter);
 
 
 // ─── Dashboard Metrics API ───────────────────────────────────────────────────
